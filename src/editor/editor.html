@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Nightswim Editor</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' filesystem 'unsafe-inline'; img-src 'self' data:;">
+  <meta name="viewport" content="initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="editor-light.css" title="stylesheet">
+  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+  <script src="../templates.js"></script>
+  <script src="../../lib/keypress-2.1.5.min.js"></script>
+  <script src="../../lib/jquery-3.3.1.min.js"></script>
+  <script>if (window.module) module = window.module;</script>
+</head>
+
+<body>
+  <header>
+      <div id="menu">
+        <button id="newWindow">New Window</button>
+        <button id="open">Open File</button>
+        <button id="save">Save File</button>
+        <button id="wordWrap">Word Wrap</button>
+      </div>
+      <div id="fileInfo" class="fileUnchanged">New File</div>
+      <div id="menu_right">
+        <button id="about">About</button>
+        <button id="playtest">Test Story</button>
+      </div>
+    </header>
+
+  <div id="about_window">
+    <h2>Nightswim Editor</h2>
+    <p>version 0.9.0</p>
+    <p>Nightswim Editor is released under
+    the open source <a href="#" id="btn_lic_ns">MIT License</a>.</p>
+    <p>Nightswim Editor is an Electron app. It includes the following (unmodified) open source components (click to view license):</p>
+    <ul>
+      <li><a href="#" id="btn_lic_mon">Monaco Editor: MIT License</a></li>
+      <li><a href="#" id="btn_lic_jq">jQuery: MIT License</a></li>
+      <li><a href="#" id="btn_lic_kp">Keypress: Apache License 2.0</a></li>
+    </ul>
+  </div>
+
+  <div id="license"></div>
+
+  <div id="container">
+
+    <div id="list_menu">
+      <h3>Main components</h3>
+      <div id="main"></div>
+
+      <h3>Conditions</h3>
+      <div id="conditions"></div>
+
+      <h3>Consequences</h3>
+      <div id="consequences"></div>
+    </div>
+
+    <div id="monaco_editor"></div>
+
+  </div>
+
+  <script>
+  // Monaco uses a custom amd loader that overrides node's require.
+  // Keep a reference to node's require so we can restore it after executing the amd loader file.
+      var nodeRequire = global.require;
+  </script>
+
+  <script src="../../lib/monaco-editor/min/vs/loader.js"></script>
+
+  <script>
+    // Save Monaco's amd require and restore Node's require
+    var amdRequire = global.require;
+    global.require = nodeRequire;
+  </script>
+
+  <script>
+    var editor;
+    var monacoReady = false;
+
+    // require node modules before loader.js comes in
+    var path = require('path');
+
+    function uriFromPath(_path) {
+      var pathName = path.resolve(_path).replace(/\\/g, '/');
+      if (pathName.length > 0 && pathName.charAt(0) !== '/') {
+        pathName = '/' + pathName;
+      }
+      return encodeURI('file://' + pathName);
+    }
+
+    amdRequire.config({
+      baseUrl: uriFromPath(path.join(__dirname, '../../lib/monaco-editor/min'))
+    });
+
+    // workaround monaco-css not understanding the environment
+    self.module = undefined;
+
+    // workaround monaco-typescript not understanding the environment
+    self.process.browser = true;
+
+    amdRequire(['vs/editor/editor.main'], function() {
+      editor = monaco.editor.create(document.getElementById('monaco_editor'), {
+        value: [].join('\n'),
+                language: 'json',
+                autoIndent: true,
+                formatOnPaste: true,
+                formatOnType: true,
+                wordWrapColumn: 100,
+                wordWrap: "off",
+                wrappingIndent: "indent"
+        });
+
+        editor.focus();
+
+        // Whenever something changes in the editor fileChanged will become true
+        editor.onDidChangeModelContent(() => {
+            fileChanged(true);
+        });
+
+        $(window).resize(function () {
+            editor.layout();
+        });
+
+        let didScrollChangeDisposable = editor.onDidScrollChange(function (event) {
+            didScrollChangeDisposable.dispose();
+            // Shouldn't need a setTimeout but can't get
+            // it to work reliably any other way...
+            setTimeout(() => {
+                monacoReady = true;
+            }, 500);
+        });
+
+      });
+
+    // Add event listener for resizes
+    /*
+    let body = document.querySelector("body");
+    body.addEventListener("onresize", (editor) => {
+        editor.layout();
+    }, false);
+    */
+  </script>
+
+  <script src="editor.js"></script>
+
+</body>
+</html>

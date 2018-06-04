@@ -1,0 +1,28 @@
+html {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-size: 1.2em;
+    font-family: Arial;
+    margin: 0;
+    padding: 2em;
+    color: black;
+    background-color: white;
+}
+
+button {
+    width: 50vw;
+    margin: 0 auto;
+    padding: 0.8em;
+    display: block;
+    color: white;
+    background-color: #333;
+    border: 0px;
+}
+
+button:hover, button:active {
+    color: white;
+    background-color: rgb(0, 96, 185);
+}

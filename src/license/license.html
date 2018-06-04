@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>View License</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' filesystem 'unsafe-inline'; img-src 'self' data:;">
+  <meta name="viewport" content="initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="license.css" title="stylesheet">
+  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+  <script src="license.js"></script>
+  <script src="../../lib/keypress-2.1.5.min.js"></script>
+  <script src="../../lib/jquery-3.3.1.min.js"></script>
+  <script>if (window.module) module = window.module;</script>
+  <script>
+      let license;
+      const {ipcRenderer, remote} = require("electron");
+
+      ipcRenderer.on("load-license", (event, whichLicense, windowId) => {
+          console.log("new window: id is " + windowId);
+
+          switch (whichLicense) {
+          case "nightswimedit":
+              license = allLicenses.nightswimedit;
+              break;
+          case "monaco":
+              license = allLicenses.monaco;
+              break;
+          case "jquery":
+              license = allLicenses.jquery;
+              break;
+          case "keypress":
+              license = allLicenses.keypress;
+              break;
+          }
+          $("#container").html(license);
+
+            let listener = new window.keypress.Listener();
+            listener.simple_combo("meta w", function () {
+                ipcRenderer.send("close-window-request", windowId);
+            });
+            listener.simple_combo("esc", function () {
+                ipcRenderer.send("close-window-request", windowId);
+            });
+
+            $("#close").click(() => {
+                ipcRenderer.send("close-window-request", windowId);
+            });
+
+      });
+  </script>
+</head>
+
+<body>
+<div id="container">No license to show</div>
+<button id="close">Close Window</button>
+</body>
+</html>
