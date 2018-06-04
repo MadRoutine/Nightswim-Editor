@@ -24,7 +24,7 @@ Electron Forge:
    project: `electron-forge init`. Electron Forge will now download all
    development dependencies.
 6. Open the package.json file in the root folder, copy
-   everything from the top up until "dependencies", and paste it over the same
+   everything from the top up until `"dependencies"`, and paste it over the same
    info in the package.json in temp/.
 7. Cut node_modules, .compilerc, .eslintrc, package.json and package-lock.json
    from temp/ and paste it in the root folder, overwriting the files that are
