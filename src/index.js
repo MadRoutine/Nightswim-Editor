@@ -173,21 +173,26 @@ app.on("activate", () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 ipcMain.on("close-window-request", (event, windowId) => {
-    console.log("closing window with id " + windowId);
-    let thisWindow = BrowserWindow.fromId(windowId);
-    thisWindow.destroy();
+  console.log("closing window with id " + windowId);
+  let thisWindow = BrowserWindow.fromId(windowId);
+  thisWindow.destroy();
 });
 
 ipcMain.on("create-new-window", () => {
-    let newWindow = createWindow();
+    createWindow();
 });
 
 ipcMain.on("create-new-play-window", (event, path) => {
-  let newWindow = createPlayWindow(path);
+  createPlayWindow(path);
 });
 
 ipcMain.on("create-new-license-window", (event, whichLicense) => {
-  let newWindow = createLicenseWindow(whichLicense);
+  createLicenseWindow(whichLicense);
+});
+
+ipcMain.on("update-title", (event, windowId, file) => {
+  let thisWindow = BrowserWindow.fromId(windowId);
+  thisWindow.setTitle(file + " - Nightswim Editor");
 });
 
 // ESLint will warn about any use of eval(), even this one

@@ -7,11 +7,10 @@ let currentFile = "newFile";
 let currentFileChanged = false;
 let openFileRequest = "";
 let wordWrap = false;
-let newWindow;
 let thisWindowId;
 let aboutOpen = false;
 
-ipcRenderer.on("request-save-dialog-on-close", (event) => {
+ipcRenderer.on("request-save-dialog-on-close", () => {
     requestSaveDialog("close");
 });
 
@@ -152,7 +151,6 @@ const fileChanged = function (changed) {
 };
 
 const toggleWordWrap = () => {
-
     if (wordWrap) {
         wordWrap = false;
         editor.updateOptions({
@@ -311,7 +309,9 @@ let showFeedback = function (message) {
 };
 
 let showFilename = function () {
-    $("#fileInfo").text(path.basename(currentFile));
+    let filename = path.basename(currentFile);
+    ipcRenderer.send("update-title", thisWindowId, currentFile);
+    $("#fileInfo").text(filename);
 };
 
 let insertAtCursor = function (content) {
@@ -348,17 +348,6 @@ generateButton("conditions", template);
 templates.consequences.forEach(function (template) {
 generateButton("consequences", template);
 });
-
-const createPlayWindow = (url) => {
-    let win;
-    win = new BrowserWindow({width: 1600, height: 1000});
-    win.loadFile(url);
-    win.webContents.openDevTools();
-    win.on("closed", () => {
-        win = null;
-    });
-    return win;
-};
 
 const startPlayTest = () => {
     // First: let's see if we can find a path
