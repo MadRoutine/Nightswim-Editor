@@ -9,6 +9,7 @@ let openFileRequest = "";
 let wordWrap = false;
 let thisWindowId;
 let aboutOpen = false;
+let extPattern = /(?:\.([^.]+))?$/;
 
 ipcRenderer.on("request-save-dialog-on-close", () => {
     requestSaveDialog("close");
@@ -186,6 +187,11 @@ const saveFile = (followUpAction) => {
             if (filename === undefined) {
                 console.log("No filename specified...");
             } else {
+                // Check if it ends with .json
+                let ext = extPattern.exec(filename)[1];
+                if (ext !== "json") {
+                    filename = filename + ".json";
+                }
                 // Write new file
                 fs.writeFile(filename, content, (err) => {
                     if(err) {
@@ -275,9 +281,7 @@ const openFile = (filePath) => {
 
 const openFileAttempt = (fileName) => {
     openFileRequest = fileName;
-    let extPattern = /(?:\.([^.]+))?$/;
     let ext = extPattern.exec(fileName)[1];
-    console.log("extension is " + ext);
     if (
         // Need better validation of actual MIME-types, not just extension
         ext !== undefined && (ext === "json" || ext === "html" ||
