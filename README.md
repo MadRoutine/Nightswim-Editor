@@ -5,10 +5,14 @@ Nightswim Editor is build in [Electron](https://electronjs.org/) and packaged by
 [Monaco](https://microsoft.github.io/monaco-editor/index.html) as its code
 editor.
 
-Keyboard shortcuts:
+Keyboard shortcuts in editor:
 - All the regular ones like CTRL+O, CTRL+S, etc.
 - Alt + S to start playtesting
 - Alt + Z to toggle Word Wrap
+
+Keyboard shortcuts in Story Preview window:
+- R to reload
+- ESC to close
 
 ## Build info
 In order to build Nightswim Editor with Electron Forge you need to download and install [Node.js](www.nodejs.com) and
