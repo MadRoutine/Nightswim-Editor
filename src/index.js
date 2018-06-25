@@ -195,6 +195,11 @@ ipcMain.on("update-title", (event, windowId, file) => {
   thisWindow.setTitle(file + " - Nightswim Editor");
 });
 
+ipcMain.on("reload-playtest", (event, windowId) => {
+  let thisWindow = BrowserWindow.fromId(windowId);
+  thisWindow.reload();
+});
+
 // ESLint will warn about any use of eval(), even this one
 // eslint-disable-next-line
 global.eval = function () {

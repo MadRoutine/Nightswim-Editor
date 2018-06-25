@@ -20,11 +20,17 @@
             webview.openDevTools();
 
             let listener = new window.keypress.Listener();
+
             listener.simple_combo("meta w", function () {
                 ipcRenderer.send("close-window-request", windowId);
             });
+
             listener.simple_combo("esc", function () {
                 ipcRenderer.send("close-window-request", windowId);
+            });
+
+            listener.simple_combo("r", function () {
+                ipcRenderer.send("reload-playtest", windowId);
             });
         })
     });
