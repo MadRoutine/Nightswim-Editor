@@ -3,6 +3,7 @@ const { addBypassChecker } = require("electron-compile");
 const path = require("path");
 let allWindows = [];
 let openFileRequest = "";
+let fileOnStart = process.argv[1];
 
 /* This bypasses the Electron-Compile security layer that prevents any assets
 from outside the project from loading */
@@ -27,9 +28,10 @@ app.on("open-file", (event, file) => {
 ipcMain.on("get-file-data", function(event) {
   let data = null;
   if (process.platform == "win32" && process.argv.length >= 2) {
-    let openFilePath = process.argv[1];
+    let openFilePath = fileOnStart;
     data = openFilePath;
     openFileRequest = "";
+    fileOnStart = null;
   } else if (openFileRequest !== "") {
     data = openFileRequest;
     openFileRequest = "";
