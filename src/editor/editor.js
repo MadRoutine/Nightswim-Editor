@@ -1,17 +1,17 @@
 const fs = require("fs");
 
-const {app, BrowserWindow, dialog, Menu, MenuItem} = require("electron").remote;
-const {ipcRenderer, remote} = require("electron");
+const {app, dialog} = require("electron").remote;
+const {ipcRenderer, shell} = require("electron");
 
-let currentFile = "newFile";
+let currentFile = "New File";
 let currentFileChanged = false;
 let openFileRequest = "";
 let wordWrap = false;
-let newWindow;
 let thisWindowId;
 let aboutOpen = false;
+let extPattern = /(?:\.([^.]+))?$/;
 
-ipcRenderer.on("request-save-dialog-on-close", (event) => {
+ipcRenderer.on("request-save-dialog-on-close", () => {
     requestSaveDialog("close");
 });
 
@@ -28,15 +28,11 @@ ipcRenderer.on("loading-done", (event, windowId) => {
     });
 
     listener.simple_combo("meta o", function () {
-        requestSaveDialog("open");
+        openFileDialog();
     });
 
     listener.simple_combo("meta n", function () {
         ipcRenderer.send("create-new-window");
-    });
-
-    listener.simple_combo("option z", function () {
-        toggleWordWrap();
     });
 
     listener.simple_combo("meta w", function () {
@@ -45,6 +41,10 @@ ipcRenderer.on("loading-done", (event, windowId) => {
 
     listener.simple_combo("option s", function () {
         startPlayTest();
+    });
+
+    listener.simple_combo("option z", function () {
+        toggleWordWrap();
     });
 
     listener.simple_combo("esc", function () {
@@ -60,6 +60,10 @@ ipcRenderer.on("loading-done", (event, windowId) => {
 
     $("#open").click(() => {
         openFileDialog();
+    });
+
+    $("#newFile").click(() => {
+        requestSaveDialog("new");
     });
 
     $("#newWindow").click(() => {
@@ -126,6 +130,11 @@ ipcRenderer.on("loading-done", (event, windowId) => {
 
 });
 
+$(document).on("click", "a[href^=\"http\"]", function (event) {
+    event.preventDefault();
+    shell.openExternal(this.href);
+});
+
 const outsideClickListener = function (event) {
     // Used for detecting a click outside the interaction menu
     if (!$(event.target).closest("#about_window").length) {
@@ -151,8 +160,13 @@ const fileChanged = function (changed) {
     }
 };
 
-const toggleWordWrap = () => {
+let showFilename = function () {
+    let filename = path.basename(currentFile);
+    ipcRenderer.send("update-title", thisWindowId, currentFile);
+    $("#fileInfo").text(filename);
+};
 
+const toggleWordWrap = () => {
     if (wordWrap) {
         wordWrap = false;
         editor.updateOptions({
@@ -168,6 +182,75 @@ const toggleWordWrap = () => {
     }
 };
 
+const changeEditorContent = (data, filePath) => {
+    fileChanged(false);
+    currentFile = filePath;
+    openFileRequest = "";
+    // Update window title
+    showFilename();
+    // Replace everything in Monaco with new content
+    if (monacoReady) {
+        editor.setModel(monaco.editor.createModel(data, 'json'));
+    } else {
+        let timePassed = 0;
+        let waitForMonaco = setInterval(() => {
+            if (monacoReady) {
+                clearInterval(waitForMonaco);
+                editor.setModel(monaco.editor.createModel(data, 'json'));
+            } else {
+                timePassed += 100;
+                if (timePassed > 5000) {
+                    // Give up
+                    clearInterval(waitForMonaco);
+                    window.alert("Loading failed.");
+                }
+            }
+        }, 100);
+    }
+};
+
+const newFile = () => {
+    changeEditorContent("", "New File");
+};
+
+const openFile = (filePath) => {
+    fs.readFile(filePath, "utf-8", (err, data) => {
+        if (err) {
+            console.log("Can't read file: ");
+        } else {
+            console.log("File read: " + filePath);
+            changeEditorContent(data, filePath);
+            // Add file to recent documents list
+            app.addRecentDocument(filePath);
+        }
+    });
+};
+
+const openFileAttempt = (fileName) => {
+    openFileRequest = fileName;
+    let ext = extPattern.exec(fileName)[1];
+    if (
+        // Need better validation of actual MIME-types, not just extension
+        ext !== undefined && (ext === "json" || ext === "html" ||
+        ext === "txt" || ext === "css")
+    ) {
+        requestSaveDialog("open");
+    } else if (ext !== undefined) {
+        window.alert("File type not supported");
+    }
+    // Do nothing if file has no extension
+};
+
+const openFileDialog = () => {
+    dialog.showOpenDialog((selectedFiles) => {
+        if (selectedFiles === undefined) {
+            console.log("No files were selected");
+        } else {
+            openFileAttempt(selectedFiles[0]);
+        }
+    });
+};
+
 const continueAction = (action) => {
     if (action === "open") {
         // Continue opening the file
@@ -177,17 +260,26 @@ const continueAction = (action) => {
         // Continue closing
         ipcRenderer.send("close-window-request", thisWindowId);
     }
+    else if (action === "new") {
+        // New file
+        newFile();
+    }
 };
 
 const saveFile = (followUpAction) => {
     let content = editor.getValue();
     // Is this a new file?
-    if (currentFile === "newFile") {
+    if (currentFile === "New File") {
         // Open Save Dialog
         dialog.showSaveDialog((filename) => {
             if (filename === undefined) {
                 console.log("No filename specified...");
             } else {
+                // Check if it ends with .json
+                let ext = extPattern.exec(filename)[1];
+                if (ext !== "json") {
+                    filename = filename + ".json";
+                }
                 // Write new file
                 fs.writeFile(filename, content, (err) => {
                     if(err) {
@@ -239,79 +331,12 @@ const requestSaveDialog = (action) => {
     }
 };
 
-const openFile = (filePath) => {
-    fs.readFile(filePath, "utf-8", (err, data) => {
-        if (err) {
-            console.log("Can't read file: ");
-        } else {
-            console.log("File read: " + filePath);
-            fileChanged(false);
-            currentFile = filePath;
-            openFileRequest = "";
-            // Update window title
-            showFilename();
-            // Replace everything in Monaco with new content
-            if (monacoReady) {
-                editor.setModel(monaco.editor.createModel(data, 'json'));
-            } else {
-                let timePassed = 0;
-                let waitForMonaco = setInterval(() => {
-                    if (monacoReady) {
-                        clearInterval(waitForMonaco);
-                        editor.setModel(monaco.editor.createModel(data, 'json'));
-                    } else {
-                        timePassed += 100;
-                        if (timePassed > 5000) {
-                            // Give up
-                            clearInterval(waitForMonaco);
-                            window.alert("Loading failed.");
-                        }
-                    }
-                }, 100);
-            }
-            // Add file to recent documents list
-            app.addRecentDocument(filePath);
-        }
-    });
-};
-
-const openFileAttempt = (fileName) => {
-    openFileRequest = fileName;
-    let extPattern = /(?:\.([^.]+))?$/;
-    let ext = extPattern.exec(fileName)[1];
-    console.log("extension is " + ext);
-    if (
-        // Need better validation of actual MIME-types, not just extension
-        ext !== undefined && (ext === "json" || ext === "html" ||
-        ext === "txt" || ext === "css")
-    ) {
-        requestSaveDialog("open");
-    } else if (ext !== undefined) {
-        window.alert("File type not supported");
-    }
-    // Do nothing if file has no extension
-};
-
-const openFileDialog = () => {
-    dialog.showOpenDialog((selectedFiles) => {
-        if (selectedFiles === undefined) {
-            console.log("No files were selected");
-        } else {
-            openFileAttempt(selectedFiles[0]);
-        }
-    });
-};
-
 let showFeedback = function (message) {
     message = "<span class=\"positive\">" + message + "</span>";
     $("#fileInfo").html(message);
     setTimeout(() => {
         showFilename();
     }, 2000);
-};
-
-let showFilename = function () {
-    $("#fileInfo").text(path.basename(currentFile));
 };
 
 let insertAtCursor = function (content) {
@@ -338,39 +363,33 @@ let generateButton = function (cat, template) {
 };
 
 templates.main.forEach(function (template) {
-generateButton("main", template);
+    generateButton("main", template);
 });
 
 templates.conditions.forEach(function (template) {
-generateButton("conditions", template);
+    generateButton("conditions", template);
 });
 
 templates.consequences.forEach(function (template) {
-generateButton("consequences", template);
+    generateButton("consequences", template);
 });
-
-const createPlayWindow = (url) => {
-    let win;
-    win = new BrowserWindow({width: 1600, height: 1000});
-    win.loadFile(url);
-    win.webContents.openDevTools();
-    win.on("closed", () => {
-        win = null;
-    });
-    return win;
-};
 
 const startPlayTest = () => {
     // First: let's see if we can find a path
     let indexFile;
-    if (currentFile !== "newFile") {
+    if (currentFile !== "New File") {
         let currentDir = path.dirname(currentFile);
         indexFile = path.join(currentDir, "..", "index.html");
-        console.log("Filepath of index.html should be: " + indexFile);
         if (fs.existsSync(indexFile)) {
             ipcRenderer.send("create-new-play-window", indexFile);
         } else {
-            window.alert("No index.html found");
+            // Check one level deeper (we might have a scenefile open)
+            indexFile = path.join(currentDir, "..", "..", "index.html");
+            if (fs.existsSync(indexFile)) {
+                ipcRenderer.send("create-new-play-window", indexFile);
+            } else {
+                window.alert("No index.html found");
+            }
         }
     } else {
         window.alert("First open one of your story files in order to test your story.");

@@ -1,4 +1,6 @@
 .vscode
+.compilerc
+.eslintrc
 node_modules
 out
 .compilerc
