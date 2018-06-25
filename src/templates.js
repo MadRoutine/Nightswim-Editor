@@ -269,6 +269,7 @@ let templates = {
                         content: `    {
         "type": "visited",
         "loc": "locID",
+        "value": 1,
         "failMsg": "messageWhenConditionIsntMet"
     }`
                     }
