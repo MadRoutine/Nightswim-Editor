@@ -40,6 +40,7 @@ header button {
     height: 2rem;
     margin: 0;
     padding: 0.6em 1rem;
+    text-align: center;
     color: white;
     background: none;
     border: 0;
@@ -96,21 +97,30 @@ header #menu_right {
     display: flex;
 }
 
-#list_menu {
-    flex: 1;
-    /*
-    flex-basis: 20em;
-    max-width: 25em;
-    */
+#list_files {
+    flex: 2;
     padding-left: 1rem;
     padding-right: 1rem;
-    background-color: rgb(223, 223, 223);
+    border-right: 1px solid rgb(223, 223, 223);
+    background-color: rgb(245,245,245);
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 #monaco_editor {
-    flex: 4;
+    flex: 8;
     margin: 0;
     padding: 0;
+}
+
+#list_menu {
+    flex: 3;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-left: 1px solid rgb(223, 223, 223);
+    background-color: rgb(245,245,245);
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 h1 {
@@ -134,24 +144,37 @@ h3 {
     width: 100%;
     margin-bottom: 0.2em;
     color: #333;
-    border-bottom: 0px dotted grey;
+    border-bottom: 1px solid #333;
 }
 
 button {
     font-size: 0.9em;
     height: 30px;
-    width: calc(50% - 1px);
-    margin: 0 1px 1px 0;
+    width: calc(50% - 4px);
+    margin: 0 4px 1px 0;
     padding: 0.4em;
     overflow: hidden;
+    text-align: left;
     border: 0;
     color: #333;
+    border-bottom: 1px solid white;
     background-color: rgb(245,245,245);
 }
 
 button:hover {
     color: white;
     background-color: #333;
+}
+
+#list_files button {
+    width: 100%;
+    /* background-color: rgb(223, 223, 223);*/
+}
+
+ul, li {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
 }
 
 .positive {
