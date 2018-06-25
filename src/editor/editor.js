@@ -355,11 +355,16 @@ const startPlayTest = () => {
     if (currentFile !== "newFile") {
         let currentDir = path.dirname(currentFile);
         indexFile = path.join(currentDir, "..", "index.html");
-        console.log("Filepath of index.html should be: " + indexFile);
         if (fs.existsSync(indexFile)) {
             ipcRenderer.send("create-new-play-window", indexFile);
         } else {
-            window.alert("No index.html found");
+            // Check one level deeper (we might have a scenefile open)
+            indexFile = path.join(currentDir, "..", "..", "index.html");
+            if (fs.existsSync(indexFile)) {
+                ipcRenderer.send("create-new-play-window", indexFile);
+            } else {
+                window.alert("No index.html found");
+            }
         }
     } else {
         window.alert("First open one of your story files in order to test your story.");
