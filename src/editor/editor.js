@@ -1,7 +1,7 @@
 const fs = require("fs");
 
-const {app, BrowserWindow, dialog, Menu, MenuItem} = require("electron").remote;
-const {ipcRenderer, remote} = require("electron");
+const {app, dialog} = require("electron").remote;
+const {ipcRenderer, shell} = require("electron");
 
 let currentFile = "newFile";
 let currentFileChanged = false;
@@ -124,6 +124,11 @@ ipcRenderer.on("loading-done", (event, windowId) => {
         ev.preventDefault();
     };
 
+});
+
+$(document).on("click", "a[href^=\"http\"]", function (event) {
+    event.preventDefault();
+    shell.openExternal(this.href);
 });
 
 const outsideClickListener = function (event) {
