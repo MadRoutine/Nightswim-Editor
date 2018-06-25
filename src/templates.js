@@ -163,8 +163,8 @@ let templates = {
         "sectionHTML": "ThisTextWillAppearAndStay ",
         "type": "add",
         "duration": 1000,
-        "inAnim": "fade",
-        "outAnim": "persist",
+        "inAnim": 500,
+        "outAnim": -1,
         "playSoundfile": "no_sound",
         "onEnd": "nothing"
     },
@@ -172,8 +172,8 @@ let templates = {
         "sectionHTML": "ThisTextWillReplaceThePreviousOneAndFadeOut ",
         "type": "replace",
         "duration": 3000,
-        "inAnim": "fade",
-        "outAnim": "fade",
+        "inAnim": 500,
+        "outAnim": 500,
         "playSoundfile": "no_sound",
         "onEnd": "nothing"
     }
@@ -186,9 +186,9 @@ let templates = {
         "sectionHTML": "text",
         "type": "addOrReplace",
         "duration": 1000,
-        "inAnim": "fade_or_AnythingElseToNotFade",
-        "outAnim": "persist_or_fade_or_anythingElseToNotFadeorPersist",
-        "playSoundfile": "no",
+        "inAnim": 0,
+        "outAnim": 0,
+        "playSoundfile": "no_sound",
         "onEnd": "nothing"
     }`
                     },
@@ -247,7 +247,7 @@ let templates = {
                         name: "state",
                         content: `    {
         "type": "state",
-        "obj": "objID, npcID, or player"
+        "obj": "objID, npcID, or player",
         "value": "state",
         "failMsg": "messageWhenConditionIsntMet"
     }`
@@ -260,6 +260,15 @@ let templates = {
         "storySetting": "nameOfSetting",
         "value": 0,
         "compare": "larger/equal/smaller",
+        "failMsg": "messageWhenConditionIsntMet"
+    }`
+                    },
+                    {
+                        id: "cond_visited",
+                        name: "visited",
+                        content: `    {
+        "type": "visited",
+        "loc": "locID",
         "failMsg": "messageWhenConditionIsntMet"
     }`
                     }
@@ -334,7 +343,7 @@ let templates = {
                     },
                     {
                         id: "change_int",
-                        name: "changeNpcInter..",
+                        name: "changeNpcInteraction",
                         content: `    {
         "type": "changeNpcInteraction",
         "npc": "NpcID",
@@ -409,6 +418,14 @@ let templates = {
                         content: `    {
         "type": "fadeOut",
         "id": "htmlID"
+    }`
+                    },
+                    {
+                        id: "change_playsound",
+                        name: "playSound",
+                        content: `    {
+        "type": "playSound",
+        "url": "filename"
     }`
                     },
                     {
