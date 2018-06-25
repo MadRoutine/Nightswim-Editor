@@ -28,7 +28,7 @@ ipcRenderer.on("loading-done", (event, windowId) => {
     });
 
     listener.simple_combo("meta o", function () {
-        requestSaveDialog("open");
+        openFileDialog();
     });
 
     listener.simple_combo("meta n", function () {
@@ -347,15 +347,15 @@ let generateButton = function (cat, template) {
 };
 
 templates.main.forEach(function (template) {
-generateButton("main", template);
+    generateButton("main", template);
 });
 
 templates.conditions.forEach(function (template) {
-generateButton("conditions", template);
+    generateButton("conditions", template);
 });
 
 templates.consequences.forEach(function (template) {
-generateButton("consequences", template);
+    generateButton("consequences", template);
 });
 
 const startPlayTest = () => {
