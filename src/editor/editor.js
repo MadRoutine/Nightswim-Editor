@@ -10,6 +10,8 @@ let wordWrap = false;
 let thisWindowId;
 let aboutOpen = false;
 let extPattern = /(?:\.([^.]+))?$/;
+let createFiles = true;
+let selectedId = "none";
 
 ipcRenderer.on("request-save-dialog-on-close", () => {
     requestSaveDialog("close");
@@ -18,7 +20,7 @@ ipcRenderer.on("request-save-dialog-on-close", () => {
 ipcRenderer.on("loading-done", (event, windowId) => {
 
     thisWindowId = windowId;
-    console.log("new window: id is " + windowId);
+    console.log("New window: id is " + windowId);
 
     // Keyboard shortcut listeners
     let listener = new window.keypress.Listener();
@@ -62,15 +64,15 @@ ipcRenderer.on("loading-done", (event, windowId) => {
         openFileDialog();
     });
 
-    $("#newFile").click(() => {
+    $("#new_file").click(() => {
         requestSaveDialog("new");
     });
 
-    $("#newWindow").click(() => {
+    $("#new_window").click(() => {
         ipcRenderer.send("create-new-window");
     });
 
-    $("#wordWrap").click(() => {
+    $("#wordwrap").click(() => {
         toggleWordWrap();
     });
 
@@ -147,23 +149,171 @@ const outsideClickListener = function (event) {
 const fileChanged = function (changed) {
     if (changed) {
         if (!currentFileChanged) {
-            $("#fileInfo").removeClass("fileUnchanged");
-            $("#fileInfo").addClass("fileChanged");
+            $("#file_info").removeClass("file_unchanged");
+            $("#file_info").addClass("file_changed");
             currentFileChanged = true;
         }
     } else {
         if (currentFileChanged) {
-            $("#fileInfo").removeClass("fileChanged");
-            $("#fileInfo").addClass("fileUnchanged");
+            $("#file_info").removeClass("file_changed");
+            $("#file_info").addClass("file_unchanged");
             currentFileChanged = false;
         }
     }
 };
 
-let showFilename = function () {
+const showFilename = function () {
     let filename = path.basename(currentFile);
     ipcRenderer.send("update-title", thisWindowId, currentFile);
-    $("#fileInfo").text(filename);
+    $("#file_info").text(filename);
+};
+
+const addFileButton = function (parent, filePath, id) {
+    // Add button
+    $(parent).append(
+        "<button id=\"" + id + "\">" + path.basename(filePath) + "</button>"
+    );
+
+    if (currentFile === filePath) {
+        selectedId = "#" + id;
+        $("#" + id).addClass("selected_file");
+    }
+
+    // Add click handler
+    $("#" + id).click(() => {
+        openFileAttempt(filePath);
+    });
+};
+
+const showFileList = function () {
+    let dir = path.dirname(currentFile);
+    let file = path.basename(currentFile);
+    let storyDir = "not_found";
+    let btnId = 0;
+    let refresh = false;
+    let mainFiles = {
+        init: {},
+        locations: {},
+        npc_list: {},
+        obj_list: {}
+    };
+
+    $("#main_files").html("");
+    $("#scene_files").html("");
+    selectedId = "none";
+
+    // 1 Find directory where main story files are
+    if (
+        file === "init.json" ||
+        file === "locations.json" ||
+        file === "npc_list.json" ||
+        file === "obj_list.json"
+    ) {
+        storyDir = dir;
+    } else {
+        let checkFile = path.join(dir, "..", "init.json");
+        if (fs.existsSync(checkFile)) {
+            storyDir = path.join(dir, "..");
+        }
+    }
+
+    if (storyDir !== "not_found") {
+        // 2 Set paths and check if all main storyfiles are present
+        let missingFiles = [];
+        let missingContent = [];
+
+        mainFiles.init.path = path.join(storyDir, "init.json");
+        mainFiles.locations.path = path.join(storyDir, "locations.json");
+        mainFiles.npc_list.path = path.join(storyDir, "npc_list.json");
+        mainFiles.obj_list.path = path.join(storyDir, "obj_list.json");
+
+        if (fs.existsSync(mainFiles.init.path)) {
+            addFileButton("#main_files", mainFiles.init.path, "init_file");
+        } else {
+            missingFiles.push(mainFiles.init.path);
+            missingContent.push(templates.files.init);
+        }
+        if (fs.existsSync(mainFiles.locations.path)) {
+            addFileButton("#main_files", mainFiles.locations.path, "loc_file");
+        } else {
+            missingFiles.push(mainFiles.locations.path);
+            missingContent.push(templates.files.locations);
+        }
+        if (fs.existsSync(mainFiles.npc_list.path)) {
+            addFileButton("#main_files", mainFiles.npc_list.path, "npc_file");
+        } else {
+            missingFiles.push(mainFiles.npc_list.path);
+            missingContent.push(templates.files.npc_list);
+        }
+        if (fs.existsSync(mainFiles.obj_list.path)) {
+            addFileButton("#main_files", mainFiles.obj_list.path, "obj_file");
+        } else {
+            missingFiles.push(mainFiles.obj_list.path);
+            missingContent.push(templates.files.obj_list);
+        }
+
+        if (missingFiles.length > 0 && createFiles) {
+            // Ask if user wants the missing files to be created
+            dialog.showMessageBox({
+                type: "question",
+                buttons: ["Yes","No"],
+                message: "Can't find one or more required story files.\nWould you like these to be created?"
+            }, (response) => {
+                if (response === 0) {
+                    // Yes
+                    let m = 0;
+                    missingFiles.forEach((missing) => {
+                        fs.writeFile(missing, missingContent[m], (err) => {
+                            if(err) {
+                                // Error
+                                dialog.showErrorBox(
+                                    "File Save Error", err.message
+                                );
+                            }
+                        });
+                        m += 1;
+                    });
+                    // Refresh filelist
+                    refresh = true;
+                    showFileList();
+                } else if (response === 1) {
+                    // No, save this choice
+                    createFiles = false;
+                }
+            });
+        }
+
+        // 3 Check for scene files
+        if (!refresh) {
+            let sceneDir = path.join(storyDir, "scenes/");
+            if (fs.existsSync(sceneDir)) {
+                fs.readdir(sceneDir, (err, files) => {
+                    files.forEach(file => {
+                        let ext = extPattern.exec(file)[1];
+                        if (ext === "json") {
+                            let thisBtnId = "scene_file_" + btnId;
+                            btnId += 1;
+                            let filePath = path.join(sceneDir, file);
+                            addFileButton("#scene_files", filePath, thisBtnId);
+                        }
+                    });
+                });
+            }
+        }
+    } else {
+        // No related files found. Just show all json files in folder
+        fs.readdir(dir, (err, files) => {
+            files.forEach((file) => {
+                let ext = extPattern.exec(file)[1];
+                if (ext === "json") {
+                    let thisBtnId = "file_" + btnId;
+                    btnId += 1;
+                    let filePath = path.join(dir, file);
+                    addFileButton("#scene_files", filePath, thisBtnId);
+                }
+            });
+        });
+    }
 };
 
 const toggleWordWrap = () => {
@@ -210,6 +360,10 @@ const changeEditorContent = (data, filePath) => {
 };
 
 const newFile = () => {
+    if (selectedId !== "none") {
+        // Remove selected class
+        $(selectedId).removeClass("selected_file");
+    }
     changeEditorContent("", "New File");
 };
 
@@ -222,19 +376,23 @@ const openFile = (filePath) => {
             changeEditorContent(data, filePath);
             // Add file to recent documents list
             app.addRecentDocument(filePath);
+            // Show related files in left column
+            showFileList();
         }
     });
 };
 
-const openFileAttempt = (fileName) => {
-    openFileRequest = fileName;
-    let ext = extPattern.exec(fileName)[1];
+const openFileAttempt = (filePath) => {
+    openFileRequest = filePath;
+    let ext = extPattern.exec(filePath)[1];
     if (
         // Need better validation of actual MIME-types, not just extension
         ext !== undefined && (ext === "json" || ext === "html" ||
         ext === "txt" || ext === "css")
     ) {
-        requestSaveDialog("open");
+        if (filePath !== currentFile) {
+            requestSaveDialog("open");
+        }
     } else if (ext !== undefined) {
         window.alert("File type not supported");
     }
@@ -289,6 +447,7 @@ const saveFile = (followUpAction) => {
                         // Success
                         currentFile = filename;
                         showFeedback("File saved");
+                        showFileList();
                         fileChanged(false);
                         continueAction(followUpAction);
                     }
@@ -333,7 +492,7 @@ const requestSaveDialog = (action) => {
 
 let showFeedback = function (message) {
     message = "<span class=\"positive\">" + message + "</span>";
-    $("#fileInfo").html(message);
+    $("#file_info").html(message);
     setTimeout(() => {
         showFilename();
     }, 2000);
@@ -392,7 +551,9 @@ const startPlayTest = () => {
             }
         }
     } else {
-        window.alert("First open one of your story files in order to test your story.");
+        window.alert(
+            "First open one of your story files in order to test your story."
+        );
     }
 };
 
