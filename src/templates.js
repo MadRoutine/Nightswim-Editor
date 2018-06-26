@@ -1,4 +1,4 @@
-// 180602r01
+// 180626r01
 let templates = {
                 main: [
                     {
@@ -461,5 +461,52 @@ let templates = {
         "scene": "sceneID"
     }`
                     },
-                ]
+                ],
+                files: {
+                    init: `{
+    "audioFadeTime": 1000,
+    "fadeTime": 250,
+    "feedbackTime": 4000,
+    "debugStats": false,
+    "muteSound": false,
+    "devAutoStart": false,
+    "enableInventory": true,
+    "bgSize": "cover",
+    "startLocation": "start",
+    "storySettings": {
+    },
+    "preloadAudio": [
+    ]
+}`,
+                    locations: `[
+    {
+        "locID": "start",
+        "name": "",
+        "accessMsg": "unlocked",
+        "locImg": "no_bg",
+        "locSnd": "no_sound",
+        "cutscenes": {},
+        "scenes": {},
+        "content": [
+            {
+                "sectionHTML": "First location!",
+                "conditions": [],
+                "consequences": [],
+                "delay": 0
+            }
+        ],
+        "styling": {
+            "containerClass": "",
+            "buttonClass": "",
+            "bgClass": ""
+        }
+    }
+]`,
+                    npc_list: `[
+
+]   `,
+                    obj_list: `[
+
+]`
+                }
 };
