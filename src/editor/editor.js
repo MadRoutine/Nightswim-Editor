@@ -322,13 +322,13 @@ const toggleWordWrap = () => {
         editor.updateOptions({
             wordWrap: "off"
         });
-        $("#wordWrap").removeClass("positive");
+        $("#wordwrap").removeClass("positive");
     } else {
         wordWrap = true;
         editor.updateOptions({
             wordWrap: "wordWrapColumn"
         });
-        $("#wordWrap").addClass("positive");
+        $("#wordwrap").addClass("positive");
     }
 };
 
