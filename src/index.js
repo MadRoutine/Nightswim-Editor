@@ -175,7 +175,7 @@ app.on("activate", () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 ipcMain.on("close-window-request", (event, windowId) => {
-  console.log("closing window with id " + windowId);
+  console.log("Closing window with id " + windowId);
   let thisWindow = BrowserWindow.fromId(windowId);
   thisWindow.destroy();
 });
