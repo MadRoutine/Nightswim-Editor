@@ -12,6 +12,7 @@ let aboutOpen = false;
 let extPattern = /(?:\.([^.]+))?$/;
 let createFiles = true;
 let selectedId = "none";
+let session = new Map();
 
 ipcRenderer.on("request-save-dialog-on-close", () => {
     requestSaveDialog("close");
@@ -334,6 +335,9 @@ const toggleWordWrap = () => {
 
 const changeEditorContent = (data, filePath) => {
     fileChanged(false);
+
+    // Save view state of file that is about to be replaced
+    session.set(currentFile, editor.saveViewState());
     currentFile = filePath;
     openFileRequest = "";
     // Update window title
@@ -341,12 +345,24 @@ const changeEditorContent = (data, filePath) => {
     // Replace everything in Monaco with new content
     if (monacoReady) {
         editor.setModel(monaco.editor.createModel(data, 'json'));
+        editor.focus();
+        // Check if file is in session, if yes, restore its view state
+        if (session.has(filePath)) {
+            let state = session.get(filePath);
+            editor.restoreViewState(state);
+        }
     } else {
         let timePassed = 0;
         let waitForMonaco = setInterval(() => {
             if (monacoReady) {
                 clearInterval(waitForMonaco);
                 editor.setModel(monaco.editor.createModel(data, 'json'));
+                editor.focus();
+                // Check if file is in session, if yes, restore its view state
+                if (session.has(filePath)) {
+                    let state = session.get(filePath);
+                    editor.restoreViewState(state);
+                }
             } else {
                 timePassed += 100;
                 if (timePassed > 5000) {
@@ -363,6 +379,11 @@ const newFile = () => {
     if (selectedId !== "none") {
         // Remove selected class
         $(selectedId).removeClass("selected_file");
+    }
+    if (session.has("New File")) {
+        // There is info saved from a previous new file,
+        // so lets delete it!
+        session.delete("New File");
     }
     changeEditorContent("", "New File");
 };
