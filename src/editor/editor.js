@@ -604,8 +604,8 @@ const createArchiveCopy = () => {
         let ext = extPattern.exec(fileName)[1];
         let fileNameNoExt = fileName.substr(0, extStart);
         let timestamp = new Date();
-        let dd = timestamp.getDate();
-        let mm = timestamp.getMonth()+1; //January is 0!
+        let dd = ("0" + timestamp.getDate()).slice(-2);
+        let mm = ("0" + (timestamp.getMonth() + 1)).slice(-2); //January is 0!
         let yyyy = timestamp.getFullYear();
         let archiveName = fileNameNoExt + "_" + yyyy + mm + dd + "r";
         let archiveDir = path.join(dir, "archive/");
@@ -616,14 +616,17 @@ const createArchiveCopy = () => {
         if (!fs.existsSync(archiveDir)) {
             fs.mkdirSync(archiveDir);
             // Revision number will be '01'
-            archiveName = archiveName + "1." + ext;
+            archiveName = archiveName + "01." + ext;
         } else {
             // Find out revision number
             let rev = 0;
             let exists = true;
             do {
                 rev += 1;
-                let checkFileName = archiveName + rev + "." + ext;
+                let checkFileName = archiveName +
+                    ("0" + rev).slice(-2) +
+                    "." +
+                    ext;
                 let checkFilePath = path.join(archiveDir, checkFileName);
                 if (!fs.existsSync(checkFilePath)) {
                     exists = false;
