@@ -4,6 +4,7 @@ const {app, dialog} = require("electron").remote;
 const {ipcRenderer, shell} = require("electron");
 
 let currentFile = "New File";
+let currentLang = "json";
 let currentFileChanged = false;
 let openFileRequest = "";
 let wordWrap = false;
@@ -13,6 +14,11 @@ let extPattern = /(?:\.([^.]+))?$/;
 let createFiles = true;
 let selectedId = "none";
 let session = new Map();
+let cat = {
+    main: true,
+    scene: true,
+    other: true
+};
 
 ipcRenderer.on("request-save-dialog-on-close", () => {
     requestSaveDialog("close");
@@ -88,6 +94,19 @@ ipcRenderer.on("loading-done", (event, windowId) => {
         if (!aboutOpen) {
             openAbout();
         }
+    });
+
+    // Related files column: category visibility toggles:
+    $("#h_main").click(() => {
+        toggleCat("main");
+    });
+
+    $("#h_scene").click(() => {
+        toggleCat("scene");
+    });
+
+    $("#h_other").click(() => {
+        toggleCat("other");
     });
 
     // License link listeners
@@ -201,6 +220,7 @@ const showFileList = function () {
 
     $("#main_files").html("");
     $("#scene_files").html("");
+    $("#other_files").html("");
     selectedId = "none";
 
     // 1 Find directory where main story files are
@@ -210,11 +230,19 @@ const showFileList = function () {
         file === "npc_list.json" ||
         file === "obj_list.json"
     ) {
+        // current file indicates that this is the story folder
         storyDir = dir;
     } else {
+        // We might be in story/scenes, so let's check one level up
         let checkFile = path.join(dir, "..", "init.json");
         if (fs.existsSync(checkFile)) {
             storyDir = path.join(dir, "..");
+        } else {
+            // Or we might be in root, so let's also check story/
+            checkFile = path.join(dir, "story/", "init.json");
+            if (fs.existsSync(checkFile)) {
+                storyDir = path.join(dir, "story/");
+            }
         }
     }
 
@@ -284,12 +312,12 @@ const showFileList = function () {
             });
         }
 
-        // 3 Check for scene files
         if (!refresh) {
+            // Check for scene files
             let sceneDir = path.join(storyDir, "scenes/");
             if (fs.existsSync(sceneDir)) {
-                fs.readdir(sceneDir, (err, files) => {
-                    files.forEach(file => {
+                fs.readdir(sceneDir, (err, sceneFiles) => {
+                    sceneFiles.forEach(file => {
                         let ext = extPattern.exec(file)[1];
                         if (ext === "json") {
                             let thisBtnId = "scene_file_" + btnId;
@@ -300,13 +328,33 @@ const showFileList = function () {
                     });
                 });
             }
+            // Check for .html, .css and .txt files
+            let otherDir = path.join(storyDir, "..");
+            if (fs.existsSync(otherDir)) {
+                fs.readdir(otherDir, (err, otherFiles) => {
+                    otherFiles.forEach(file => {
+                        let ext = extPattern.exec(file)[1];
+                        if (ext === "html" || ext === "css" || ext === "txt") {
+                            let thisBtnId = "other_file_" + btnId;
+                            btnId += 1;
+                            let filePath = path.join(otherDir, file);
+                            addFileButton("#other_files", filePath, thisBtnId);
+                        }
+                    });
+                });
+            }
         }
     } else {
-        // No related files found. Just show all json files in folder
+        // No related files found. Just show all json files in folder,
+        // except package and package-lock
         fs.readdir(dir, (err, files) => {
             files.forEach((file) => {
                 let ext = extPattern.exec(file)[1];
-                if (ext === "json") {
+                if (
+                    ext === "json" &&
+                    file !== "package.json" &&
+                    file !== "package-lock.json"
+                ) {
                     let thisBtnId = "file_" + btnId;
                     btnId += 1;
                     let filePath = path.join(dir, file);
@@ -335,16 +383,27 @@ const toggleWordWrap = () => {
 
 const changeEditorContent = (data, filePath) => {
     fileChanged(false);
-
     // Save view state of file that is about to be replaced
     session.set(currentFile, editor.saveViewState());
     currentFile = filePath;
     openFileRequest = "";
+    // Set correct language
+    // Assume new file is json type
+    let ext = extPattern.exec(filePath)[1];
+    if (filePath === "New File" || (ext !== undefined && ext === "json")) {
+        currentLang = "json";
+    } else if (ext !== undefined && ext === "html") {
+        currentLang = "html";
+    } else if (ext !== undefined && ext === "css") {
+        currentLang = "css";
+    } else if (ext !== undefined && ext === "txt") {
+        currentLang = "plaintext";
+    }
     // Update window title
     showFilename();
     // Replace everything in Monaco with new content
     if (monacoReady) {
-        editor.setModel(monaco.editor.createModel(data, 'json'));
+        editor.setModel(monaco.editor.createModel(data, currentLang));
         editor.focus();
         // Check if file is in session, if yes, restore its view state
         if (session.has(filePath)) {
@@ -356,7 +415,7 @@ const changeEditorContent = (data, filePath) => {
         let waitForMonaco = setInterval(() => {
             if (monacoReady) {
                 clearInterval(waitForMonaco);
-                editor.setModel(monaco.editor.createModel(data, 'json'));
+                editor.setModel(monaco.editor.createModel(data, currentLang));
                 editor.focus();
                 // Check if file is in session, if yes, restore its view state
                 if (session.has(filePath)) {
@@ -596,4 +655,32 @@ const closeAbout = () => {
             }
         });
     }, 100);
+};
+
+const toggleCat = (whichCat) => {
+    if (whichCat === "main") {
+        if (cat.main) {
+            $("#main_files").css("display", "none");
+            cat.main = false;
+        } else {
+            $("#main_files").css("display", "block");
+            cat.main = true;
+        }
+    } else if (whichCat === "scene") {
+        if (cat.scene) {
+            $("#scene_files").css("display", "none");
+            cat.scene = false;
+        } else {
+            $("#scene_files").css("display", "block");
+            cat.scene = true;
+        }
+    } else if (whichCat === "other") {
+        if (cat.other) {
+            $("#other_files").css("display", "none");
+            cat.other = false;
+        } else {
+            $("#other_files").css("display", "block");
+            cat.other = true;
+        }
+    }
 };
