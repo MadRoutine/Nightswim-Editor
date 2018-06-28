@@ -17,7 +17,8 @@ let session = new Map();
 let cat = {
     main: true,
     scene: true,
-    other: true
+    other: true,
+    prev: true
 };
 
 ipcRenderer.on("request-save-dialog-on-close", () => {
@@ -107,6 +108,10 @@ ipcRenderer.on("loading-done", (event, windowId) => {
 
     $("#h_other").click(() => {
         toggleCat("other");
+    });
+
+    $("#h_prev").click(() => {
+        toggleCat("prev");
     });
 
     // License link listeners
@@ -208,6 +213,7 @@ const addFileButton = function (parent, filePath, id) {
 const showFileList = function () {
     let dir = path.dirname(currentFile);
     let file = path.basename(currentFile);
+    let currentExt = extPattern.exec(file)[1];
     let storyDir = "not_found";
     let btnId = 0;
     let refresh = false;
@@ -221,6 +227,7 @@ const showFileList = function () {
     $("#main_files").html("");
     $("#scene_files").html("");
     $("#other_files").html("");
+    $("#prev_files").html("");
     selectedId = "none";
 
     // 1 Find directory where main story files are
@@ -312,17 +319,19 @@ const showFileList = function () {
             });
         }
 
+        /* This function was called again when files were automatically created
+        Only continue here if that's not the case */
         if (!refresh) {
             // Check for scene files
             let sceneDir = path.join(storyDir, "scenes/");
             if (fs.existsSync(sceneDir)) {
                 fs.readdir(sceneDir, (err, sceneFiles) => {
-                    sceneFiles.forEach(file => {
-                        let ext = extPattern.exec(file)[1];
+                    sceneFiles.forEach(sceneFile => {
+                        let ext = extPattern.exec(sceneFile)[1];
                         if (ext === "json") {
                             let thisBtnId = "scene_file_" + btnId;
                             btnId += 1;
-                            let filePath = path.join(sceneDir, file);
+                            let filePath = path.join(sceneDir, sceneFile);
                             addFileButton("#scene_files", filePath, thisBtnId);
                         }
                     });
@@ -332,12 +341,12 @@ const showFileList = function () {
             let otherDir = path.join(storyDir, "..");
             if (fs.existsSync(otherDir)) {
                 fs.readdir(otherDir, (err, otherFiles) => {
-                    otherFiles.forEach(file => {
-                        let ext = extPattern.exec(file)[1];
+                    otherFiles.forEach(otherFile => {
+                        let ext = extPattern.exec(otherFile)[1];
                         if (ext === "html" || ext === "css" || ext === "txt") {
                             let thisBtnId = "other_file_" + btnId;
                             btnId += 1;
-                            let filePath = path.join(otherDir, file);
+                            let filePath = path.join(otherDir, otherFile);
                             addFileButton("#other_files", filePath, thisBtnId);
                         }
                     });
@@ -345,11 +354,11 @@ const showFileList = function () {
             }
         }
     } else {
-        // No related files found. Just show all json files in folder,
-        // except package and package-lock
+        /* No related files found. Just show all json files in folder,
+        except package and package-lock */
         fs.readdir(dir, (err, files) => {
-            files.forEach((file) => {
-                let ext = extPattern.exec(file)[1];
+            files.forEach((sceneFile) => {
+                let ext = extPattern.exec(sceneFile)[1];
                 if (
                     ext === "json" &&
                     file !== "package.json" &&
@@ -357,11 +366,34 @@ const showFileList = function () {
                 ) {
                     let thisBtnId = "file_" + btnId;
                     btnId += 1;
-                    let filePath = path.join(dir, file);
+                    let filePath = path.join(dir, sceneFile);
                     addFileButton("#scene_files", filePath, thisBtnId);
                 }
             });
         });
+    }
+
+    // Check for other versions of the current file
+    if (!refresh) {
+        let archiveDir = path.join(dir, "archive/");
+        // Check if archive/ exists
+        if (fs.existsSync(archiveDir)) {
+            fs.readdir(archiveDir, (err, archiveFiles) => {
+                let extStart = file.search(extPattern);
+                let fileNoExt = file.substr(0, extStart);
+                // Check every file in archive/
+                archiveFiles.forEach(archiveFile => {
+                    let startPos = archiveFile.search(fileNoExt);
+                    if (startPos !== undefined && startPos !== -1) {
+                        /* We found the name of the currently open file in one of the files in the archive folder. Display it. */
+                        let thisBtnId = "prev_" + btnId;
+                        btnId += 1;
+                        let filePath = path.join(archiveDir, archiveFile);
+                        addFileButton("#prev_files", filePath, thisBtnId);
+                    }
+                });
+            });
+        }
     }
 };
 
@@ -687,6 +719,16 @@ const toggleCat = (whichCat) => {
             $("#other_files").css("display", "block");
             $("#h_other").removeClass("folded");
             cat.other = true;
+        }
+    } else if (whichCat === "prev") {
+        if (cat.prev) {
+            $("#prev_files").css("display", "none");
+            $("#h_prev").addClass("folded");
+            cat.prev = false;
+        } else {
+            $("#prev_files").css("display", "block");
+            $("#h_prev").removeClass("folded");
+            cat.prev = true;
         }
     }
 };
