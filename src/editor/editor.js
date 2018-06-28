@@ -3,16 +3,29 @@ const fs = require("fs");
 const {app, dialog} = require("electron").remote;
 const {ipcRenderer, shell} = require("electron");
 
-let currentFile = "New File";
+/* For consistency:
+    dir always refers to the absolute directory the file lives in
+    (file)name always refers to name.ext without directory
+    (file)path always refers to dir+name
+    currentFile.path contains a path to the currently open file
+*/
+let currentFile = {
+    path: "New File",
+    type: "regular"
+};
 let currentLang = "json";
 let currentFileChanged = false;
+let prevFile = {
+    path: "none",
+    type: "none"
+};
 let openFileRequest = "";
+let openingArchive = false;
 let wordWrap = false;
 let thisWindowId;
 let aboutOpen = false;
 let extPattern = /(?:\.([^.]+))?$/;
 let createFiles = true;
-let selectedId = "none";
 let session = new Map();
 let cat = {
     main: true,
@@ -20,10 +33,6 @@ let cat = {
     other: true,
     prev: true
 };
-
-ipcRenderer.on("request-save-dialog-on-close", () => {
-    requestSaveDialog("close");
-});
 
 ipcRenderer.on("loading-done", (event, windowId) => {
 
@@ -64,29 +73,32 @@ ipcRenderer.on("loading-done", (event, windowId) => {
     });
 
     // Menu click listeners
-    $("#save").click(() => {
-        saveFile();
-    });
-
-    $("#open").click(() => {
-        openFileDialog();
+    $("#new_window").click(() => {
+        ipcRenderer.send("create-new-window");
     });
 
     $("#new_file").click(() => {
         requestSaveDialog("new");
     });
 
-    $("#new_window").click(() => {
-        ipcRenderer.send("create-new-window");
+    $("#open").click(() => {
+        openFileDialog();
+    });
+
+    $("#save").click(() => {
+        saveFile();
+    });
+
+    $("#archive").click(() => {
+        createArchiveCopy();
+    });
+
+    $("#playtest").click(() => {
+        startPlayTest();
     });
 
     $("#wordwrap").click(() => {
         toggleWordWrap();
-    });
-
-
-    $("#playtest").click(() => {
-        startPlayTest();
     });
 
     // Click listener only works once, or else the outsideClickListener and
@@ -157,6 +169,10 @@ ipcRenderer.on("loading-done", (event, windowId) => {
 
 });
 
+ipcRenderer.on("request-save-dialog-on-close", () => {
+    requestSaveDialog("close");
+});
+
 $(document).on("click", "a[href^=\"http\"]", function (event) {
     event.preventDefault();
     shell.openExternal(this.href);
@@ -188,8 +204,8 @@ const fileChanged = function (changed) {
 };
 
 const showFilename = function () {
-    let filename = path.basename(currentFile);
-    ipcRenderer.send("update-title", thisWindowId, currentFile);
+    let filename = path.basename(currentFile.path);
+    ipcRenderer.send("update-title", thisWindowId, currentFile.path);
     $("#file_info").text(filename);
 };
 
@@ -199,21 +215,23 @@ const addFileButton = function (parent, filePath, id) {
         "<button id=\"" + id + "\">" + path.basename(filePath) + "</button>"
     );
 
-    if (currentFile === filePath) {
-        selectedId = "#" + id;
+    if (currentFile.path === filePath) {
         $("#" + id).addClass("selected_file");
     }
 
     // Add click handler
     $("#" + id).click(() => {
+        if (parent === "#prev_files") {
+            openingArchive = true;
+        }
         openFileAttempt(filePath);
     });
 };
 
 const showFileList = function () {
-    let dir = path.dirname(currentFile);
-    let file = path.basename(currentFile);
-    let currentExt = extPattern.exec(file)[1];
+    let refFile;
+    let dir;
+    let fileName;
     let storyDir = "not_found";
     let btnId = 0;
     let refresh = false;
@@ -224,30 +242,46 @@ const showFileList = function () {
         obj_list: {}
     };
 
+    if (
+        (currentFile.path === "New File" || currentFile.type === "archive") &&
+        prevFile !== "none"
+    ) {
+        refFile = prevFile;
+    } else {
+        refFile = currentFile;
+    }
+
+    console.log("currentFile.type: " + currentFile.type);
+    console.log("currentFile.path: " + currentFile.path);
+    console.log("prevFile.path: " + prevFile.path);
+    console.log("refFile.path: " + refFile.path);
+
+    dir = path.dirname(refFile.path);
+    fileName = path.basename(refFile.path);
+
     $("#main_files").html("");
     $("#scene_files").html("");
     $("#other_files").html("");
     $("#prev_files").html("");
-    selectedId = "none";
 
     // 1 Find directory where main story files are
     if (
-        file === "init.json" ||
-        file === "locations.json" ||
-        file === "npc_list.json" ||
-        file === "obj_list.json"
+        fileName === "init.json" ||
+        fileName === "locations.json" ||
+        fileName === "npc_list.json" ||
+        fileName === "obj_list.json"
     ) {
-        // current file indicates that this is the story folder
+        // current fileName indicates that this is the story folder
         storyDir = dir;
     } else {
         // We might be in story/scenes, so let's check one level up
-        let checkFile = path.join(dir, "..", "init.json");
-        if (fs.existsSync(checkFile)) {
+        let checkPath = path.join(dir, "..", "init.json");
+        if (fs.existsSync(checkPath)) {
             storyDir = path.join(dir, "..");
         } else {
             // Or we might be in root, so let's also check story/
-            checkFile = path.join(dir, "story/", "init.json");
-            if (fs.existsSync(checkFile)) {
+            checkPath = path.join(dir, "story/", "init.json");
+            if (fs.existsSync(checkPath)) {
                 storyDir = path.join(dir, "story/");
             }
         }
@@ -326,12 +360,12 @@ const showFileList = function () {
             let sceneDir = path.join(storyDir, "scenes/");
             if (fs.existsSync(sceneDir)) {
                 fs.readdir(sceneDir, (err, sceneFiles) => {
-                    sceneFiles.forEach(sceneFile => {
-                        let ext = extPattern.exec(sceneFile)[1];
+                    sceneFiles.forEach(sceneFileName => {
+                        let ext = extPattern.exec(sceneFileName)[1];
                         if (ext === "json") {
                             let thisBtnId = "scene_file_" + btnId;
                             btnId += 1;
-                            let filePath = path.join(sceneDir, sceneFile);
+                            let filePath = path.join(sceneDir, sceneFileName);
                             addFileButton("#scene_files", filePath, thisBtnId);
                         }
                     });
@@ -341,12 +375,12 @@ const showFileList = function () {
             let otherDir = path.join(storyDir, "..");
             if (fs.existsSync(otherDir)) {
                 fs.readdir(otherDir, (err, otherFiles) => {
-                    otherFiles.forEach(otherFile => {
-                        let ext = extPattern.exec(otherFile)[1];
+                    otherFiles.forEach(otherFileName => {
+                        let ext = extPattern.exec(otherFileName)[1];
                         if (ext === "html" || ext === "css" || ext === "txt") {
                             let thisBtnId = "other_file_" + btnId;
                             btnId += 1;
-                            let filePath = path.join(otherDir, otherFile);
+                            let filePath = path.join(otherDir, otherFileName);
                             addFileButton("#other_files", filePath, thisBtnId);
                         }
                     });
@@ -357,33 +391,34 @@ const showFileList = function () {
         /* No related files found. Just show all json files in folder,
         except package and package-lock */
         fs.readdir(dir, (err, files) => {
-            files.forEach((sceneFile) => {
-                let ext = extPattern.exec(sceneFile)[1];
+            files.forEach((sceneFileName) => {
+                let ext = extPattern.exec(sceneFileName)[1];
                 if (
                     ext === "json" &&
-                    file !== "package.json" &&
-                    file !== "package-lock.json"
+                    fileName !== "package.json" &&
+                    fileName !== "package-lock.json"
                 ) {
                     let thisBtnId = "file_" + btnId;
                     btnId += 1;
-                    let filePath = path.join(dir, sceneFile);
+                    let filePath = path.join(dir, sceneFileName);
                     addFileButton("#scene_files", filePath, thisBtnId);
                 }
             });
         });
     }
 
-    // Check for other versions of the current file
+    // Check for archive/previous versions of the current file
     if (!refresh) {
+        let extStart = fileName.search(extPattern);
+        let fileNameNoExt = fileName.substr(0, extStart);
         let archiveDir = path.join(dir, "archive/");
         // Check if archive/ exists
         if (fs.existsSync(archiveDir)) {
             fs.readdir(archiveDir, (err, archiveFiles) => {
-                let extStart = file.search(extPattern);
-                let fileNoExt = file.substr(0, extStart);
+
                 // Check every file in archive/
                 archiveFiles.forEach(archiveFile => {
-                    let startPos = archiveFile.search(fileNoExt);
+                    let startPos = archiveFile.search(fileNameNoExt);
                     if (startPos !== undefined && startPos !== -1) {
                         /* We found the name of the currently open file in one of the files in the archive folder. Display it. */
                         let thisBtnId = "prev_" + btnId;
@@ -416,8 +451,27 @@ const toggleWordWrap = () => {
 const changeEditorContent = (data, filePath) => {
     fileChanged(false);
     // Save view state of file that is about to be replaced
-    session.set(currentFile, editor.saveViewState());
-    currentFile = filePath;
+    session.set(currentFile.path, editor.saveViewState());
+
+    // Update prevFile
+    if (currentFile.path !== "New File" && currentFile.type !== "archive") {
+        prevFile.path = currentFile.path;
+        prevFile.type = currentFile.type;
+        console.log("prevFile updated");
+    }
+
+    // Update currentFile.type
+    if (openingArchive) {
+        currentFile.type = "archive";
+        // We're done with openingArchive, reset it
+        openingArchive = false;
+    } else {
+        currentFile.type = "regular";
+    }
+
+    // Update currentFile.path
+    currentFile.path = filePath;
+
     openFileRequest = "";
     // Set correct language
     // Assume new file is json type
@@ -467,16 +521,15 @@ const changeEditorContent = (data, filePath) => {
 };
 
 const newFile = () => {
-    if (selectedId !== "none") {
-        // Remove selected class
-        $(selectedId).removeClass("selected_file");
-    }
     if (session.has("New File")) {
         // There is info saved from a previous new file,
         // so lets delete it!
         session.delete("New File");
     }
     changeEditorContent("", "New File");
+    /* Show related files in left column, in this case based on a previously
+    opened file (if there was) */
+    showFileList();
 };
 
 const openFile = (filePath) => {
@@ -486,10 +539,10 @@ const openFile = (filePath) => {
         } else {
             console.log("File read: " + filePath);
             changeEditorContent(data, filePath);
-            // Add file to recent documents list
-            app.addRecentDocument(filePath);
             // Show related files in left column
             showFileList();
+            // Add file to recent documents list
+            app.addRecentDocument(filePath);
         }
     });
 };
@@ -502,7 +555,7 @@ const openFileAttempt = (filePath) => {
         ext !== undefined && (ext === "json" || ext === "html" ||
         ext === "txt" || ext === "css")
     ) {
-        if (filePath !== currentFile) {
+        if (filePath !== currentFile.path) {
             requestSaveDialog("open");
         }
     } else if (ext !== undefined) {
@@ -536,10 +589,63 @@ const continueAction = (action) => {
     }
 };
 
+const createArchiveCopy = () => {
+    if (currentFile.path !== "New File") {
+        let dir = path.dirname(currentFile.path);
+        let fileName = path.basename(currentFile.path);
+        let extStart = fileName.search(extPattern);
+        let ext = extPattern.exec(fileName)[1];
+        let fileNameNoExt = fileName.substr(0, extStart);
+        let timestamp = new Date();
+        let dd = timestamp.getDate();
+        let mm = timestamp.getMonth()+1; //January is 0!
+        let yyyy = timestamp.getFullYear();
+        let archiveName = fileNameNoExt + "_" + yyyy + mm + dd + "r";
+        let archiveDir = path.join(dir, "archive/");
+        let archivePath;
+        let content = editor.getValue();
+
+        // Check if archive directory exists. If not: create it
+        if (!fs.existsSync(archiveDir)) {
+            fs.mkdirSync(archiveDir);
+            // Revision number will be '01'
+            archiveName = archiveName + "1." + ext;
+        } else {
+            // Find out revision number
+            let rev = 0;
+            let exists = true;
+            do {
+                rev += 1;
+                let checkFileName = archiveName + rev + "." + ext;
+                let checkFilePath = path.join(archiveDir, checkFileName);
+                if (!fs.existsSync(checkFilePath)) {
+                    exists = false;
+                    archiveName = checkFileName;
+                }
+            } while (exists);
+        }
+
+        // Save it
+        archivePath = path.join(archiveDir, archiveName);
+        fs.writeFile(archivePath, content, (err) => {
+            if(err) {
+                // Error
+                dialog.showErrorBox("File Save Error", err.message);
+            } else {
+                // Success
+                showFeedback("Archive copy saved");
+                showFileList();
+            }
+        });
+    } else {
+        window.alert("Please save your file first.");
+    }
+};
+
 const saveFile = (followUpAction) => {
     let content = editor.getValue();
     // Is this a new file?
-    if (currentFile === "New File") {
+    if (currentFile.path === "New File") {
         // Open Save Dialog
         dialog.showSaveDialog((filename) => {
             if (filename === undefined) {
@@ -557,7 +663,7 @@ const saveFile = (followUpAction) => {
                         dialog.showErrorBox("File Save Error", err.message);
                     } else {
                         // Success
-                        currentFile = filename;
+                        currentFile.path = filename;
                         showFeedback("File saved");
                         showFileList();
                         fileChanged(false);
@@ -567,8 +673,8 @@ const saveFile = (followUpAction) => {
             }
         });
     } else {
-        // Update currentFile
-        fs.writeFile(currentFile, content, (err) => {
+        // Update currentFile.path
+        fs.writeFile(currentFile.path, content, (err) => {
             if (err) {
                 console.log("Cannot update file." + err);
                 return;
@@ -595,6 +701,11 @@ const requestSaveDialog = (action) => {
             } else if (response === 1) {
                 // User doesn't want to save
                 continueAction(action);
+            } else if (response === 2) {
+                // User cancelled
+                if (openingArchive) {
+                    openingArchive = false;
+                }
             }
         });
     } else {
@@ -648,8 +759,8 @@ templates.consequences.forEach(function (template) {
 const startPlayTest = () => {
     // First: let's see if we can find a path
     let indexFile;
-    if (currentFile !== "New File") {
-        let currentDir = path.dirname(currentFile);
+    if (currentFile.path !== "New File") {
+        let currentDir = path.dirname(currentFile.path);
         indexFile = path.join(currentDir, "..", "index.html");
         if (fs.existsSync(indexFile)) {
             ipcRenderer.send("create-new-play-window", indexFile);
