@@ -661,25 +661,31 @@ const toggleCat = (whichCat) => {
     if (whichCat === "main") {
         if (cat.main) {
             $("#main_files").css("display", "none");
+            $("#h_main").addClass("folded");
             cat.main = false;
         } else {
             $("#main_files").css("display", "block");
+            $("#h_main").removeClass("folded");
             cat.main = true;
         }
     } else if (whichCat === "scene") {
         if (cat.scene) {
             $("#scene_files").css("display", "none");
+            $("#h_scene").addClass("folded");
             cat.scene = false;
         } else {
             $("#scene_files").css("display", "block");
+            $("#h_scene").removeClass("folded");
             cat.scene = true;
         }
     } else if (whichCat === "other") {
         if (cat.other) {
             $("#other_files").css("display", "none");
+            $("#h_other").addClass("folded");
             cat.other = false;
         } else {
             $("#other_files").css("display", "block");
+            $("#h_other").removeClass("folded");
             cat.other = true;
         }
     }

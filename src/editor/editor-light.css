@@ -204,6 +204,10 @@ ul, li {
     color: rgb(0, 96, 185);
 }
 
+.folded {
+    border-bottom-style: dotted;
+}
+
 a:link, a:visited {
     color: white;
 }
