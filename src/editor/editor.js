@@ -211,9 +211,16 @@ const showFilename = function () {
 
 const addFileButton = function (parent, filePath, id) {
     // Add button
-    $(parent).append(
-        "<button id=\"" + id + "\">" + path.basename(filePath) + "</button>"
-    );
+    if (parent === "#prev_files") {
+        $(parent).prepend(
+            // This will show newer files first
+            "<button id=\"" + id + "\">" + path.basename(filePath) + "</button>"
+        );
+    } else {
+        $(parent).append(
+            "<button id=\"" + id + "\">" + path.basename(filePath) + "</button>"
+        );
+    }
 
     if (currentFile.path === filePath) {
         $("#" + id).addClass("selected_file");
