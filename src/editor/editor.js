@@ -453,6 +453,7 @@ const toggleWordWrap = () => {
         });
         $("#wordwrap").addClass("positive");
     }
+    editor.focus();
 };
 
 const changeEditorContent = (data, filePath) => {
@@ -650,6 +651,7 @@ const createArchiveCopy = () => {
     } else {
         window.alert("Please save your file first.");
     }
+    editor.focus();
 };
 
 const saveFile = (followUpAction) => {
@@ -695,6 +697,7 @@ const saveFile = (followUpAction) => {
             }
         });
     }
+    editor.focus();
 };
 
 const requestSaveDialog = (action) => {
@@ -769,6 +772,7 @@ templates.consequences.forEach(function (template) {
 const startPlayTest = () => {
     // First: let's see if we can find a path
     let indexFile;
+    editor.focus();
     if (currentFile.path !== "New File") {
         let currentDir = path.dirname(currentFile.path);
         indexFile = path.join(currentDir, "..", "index.html");
@@ -808,6 +812,7 @@ const closeAbout = () => {
             }
         });
     }, 100);
+    editor.focus();
 };
 
 const toggleCat = (whichCat) => {
