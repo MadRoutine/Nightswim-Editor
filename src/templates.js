@@ -412,7 +412,7 @@ let templates = {
                         content: `    {
         "type": "increaseStorySetting",
         "storySetting": "parameter",
-        "value": 1
+        "amount": 1
     }`
                     },
                     {
