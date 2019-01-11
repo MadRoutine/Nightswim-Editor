@@ -245,7 +245,7 @@ let templates = {
                     },
                     {
                         id: "cond_state",
-                        name: "state",
+                        name: "playerState",
                         content: `    {
         "type": "state",
         "obj": "objID, npcID, or player",
@@ -399,11 +399,20 @@ let templates = {
                     },
                     {
                         id: "change_setting",
-                        name: "changeStorySetting",
+                        name: "setStorySetting",
                         content: `    {
-        "type": "changeStorySetting",
+        "type": "setStorySetting",
         "storySetting": "parameter",
         "value": true
+    }`
+                    },
+                    {
+                        id: "change_increasesetting",
+                        name: "increaseStorySetting",
+                        content: `    {
+        "type": "increaseStorySetting",
+        "storySetting": "parameter",
+        "value": 1
     }`
                     },
                     {
