@@ -1,4 +1,4 @@
-// 180626r01
+// 190111r01
 let templates = {
                 main: [
                     {
@@ -20,7 +20,7 @@ let templates = {
                 "delay": 0
             }
         ],
-        "styling": {    
+        "styling": {
             "containerClass": "",
             "buttonClass": "",
             "bgClass": ""
@@ -239,6 +239,7 @@ let templates = {
         "type": "npcComfortLevel",
         "npc": "npcID",
         "value": 0,
+        "compare": "larger/equal/smaller",
         "failMsg": "messageWhenConditionIsntMet"
     }`
                     },
