@@ -1,8 +1,5 @@
-.vscode
-node_modules
-out
-.compilerc
-.eslintrc
-.jshintrc
-package.json
-package-lock.json
+.DS_Store
+dist/
+node_modules/
+thumbs.db
+.idea/
