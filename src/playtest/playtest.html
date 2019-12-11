@@ -5,7 +5,6 @@
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' filesystem 'unsafe-inline'; img-src 'self' data:;">
   <meta name="viewport" content="initial-scale=1">
-  <script src="../../lib/keypress-2.1.5.min.js"></script>
   <script>
     const {ipcRenderer, remote} = require("electron");
     ipcRenderer.on("playtest-loading-done", (event, path, windowId) => {
@@ -16,29 +15,12 @@
         const playFrame = document.querySelector("#playFrameId");
         playFrame.src = path;
 
-        playFrame.addEventListener("dom-ready", () => {
-            playFrame.openDevTools();
-
-            let listener = new window.keypress.Listener();
-
-            listener.simple_combo("meta w", function () {
-                ipcRenderer.send("close-window-request", windowId);
-            });
-
-            listener.simple_combo("esc", function () {
-                ipcRenderer.send("close-window-request", windowId);
-            });
-
-            listener.simple_combo("r", function () {
-                ipcRenderer.send("reload-playtest", windowId);
-            });
-        })
     });
   </script>
 </head>
 
 <body style="margin: 0; padding: 0">
-  <iframe id="playFrameId" style="width: 100vw; height: 100vh; margin: 0;
+  <iframe id="playFrameId" style="width: 99vw; height: 99vh; margin: 0;
   padding: 0; border: 0;"></iframe>
 </body>
 </html>
