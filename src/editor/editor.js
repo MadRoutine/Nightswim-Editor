@@ -659,29 +659,32 @@ const saveFile = (followUpAction) => {
     // Is this a new file?
     if (currentFile.path === "New File") {
         // Open Save Dialog
-        dialog.showSaveDialog((filename) => {
-            if (filename === undefined) {
-                console.log("No filename specified...");
-            } else {
-                // Check if it ends with .json
-                let ext = extPattern.exec(filename)[1];
-                if (ext !== "json") {
-                    filename = filename + ".json";
-                }
-                // Write new file
-                fs.writeFile(filename, content, (err) => {
-                    if(err) {
-                        // Error
-                        dialog.showErrorBox("File Save Error", err.message);
-                    } else {
-                        // Success
-                        currentFile.path = filename;
-                        showFeedback("File saved");
-                        showFileList();
-                        fileChanged(false);
-                        continueAction(followUpAction);
+        dialog.showSaveDialog().then(result => {
+            if (!result.canceled) {
+                let filename = result.filePath;
+                if (filename === undefined) {
+                    console.log("No filename specified...");
+                } else {
+                    // Check if it ends with .json
+                    let ext = extPattern.exec(filename)[1];
+                    if (ext !== "json") {
+                        filename = filename + ".json";
                     }
-                });
+                    // Write new file
+                    fs.writeFile(filename, content, (err) => {
+                        if(err) {
+                            // Error
+                            dialog.showErrorBox("File Save Error", err.message);
+                        } else {
+                            // Success
+                            currentFile.path = filename;
+                            showFeedback("File saved");
+                            showFileList();
+                            fileChanged(false);
+                            continueAction(followUpAction);
+                        }
+                    });
+                }
             }
         });
     } else {
@@ -707,14 +710,14 @@ const requestSaveDialog = (action) => {
             type: "question",
             buttons: ["Save","Don't Save", "Cancel"],
             message: "Your file has unsaved changes. Would you like to save it?"
-        }, (response) => {
-            if (response === 0) {
+        }).then(result => {
+            if (result.response === 0) {
                 // User wants to save
                 saveFile(action);
-            } else if (response === 1) {
+            } else if (result.response === 1) {
                 // User doesn't want to save
                 continueAction(action);
-            } else if (response === 2) {
+            } else if (result.response === 2) {
                 // User cancelled
                 if (openingArchive) {
                     openingArchive = false;
