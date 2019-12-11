@@ -1,0 +1,21 @@
+{
+  "name": "nightswim-editor",
+  "version": "1.1.0-alpha",
+  "description": "Editor for Nightswim",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/MadRoutine/Nightswim-Editor",
+  "keywords": [
+    "Nightswim",
+    "editor",
+    "interactive",
+    "fiction"
+  ],
+  "author": "Mad Routine",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^7.1.4"
+  }
+}

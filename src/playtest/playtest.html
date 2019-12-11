@@ -13,11 +13,11 @@
         path = "file://" + path;
         console.log("Playtest path is " + path);
 
-        const webview = document.querySelector("#playtestWebview");
-        webview.loadURL(path);
+        const playFrame = document.querySelector("#playFrameId");
+        playFrame.src = path;
 
-        webview.addEventListener("dom-ready", () => {
-            webview.openDevTools();
+        playFrame.addEventListener("dom-ready", () => {
+            playFrame.openDevTools();
 
             let listener = new window.keypress.Listener();
 
@@ -38,7 +38,7 @@
 </head>
 
 <body style="margin: 0; padding: 0">
-  <webview id="playtestWebview" style="width: 100vw; height: 100vh; margin: 0;
-  padding: 0; border: 0;"></webview>
+  <iframe id="playFrameId" style="width: 100vw; height: 100vh; margin: 0;
+  padding: 0; border: 0;"></playFrame>
 </body>
 </html>

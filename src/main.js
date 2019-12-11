@@ -1,20 +1,23 @@
 const { app, BrowserWindow, ipcMain, Menu } = require("electron");
-const { addBypassChecker } = require("electron-compile");
 const path = require("path");
+//const { addBypassChecker } = require("electron-compile");
+
 let allWindows = [];
 let openFileRequest = "";
 let fileOnStart = process.argv[1];
 
 /* This bypasses the Electron-Compile security layer that prevents any assets
-from outside the project from loading */
+from outside the project from loading
 addBypassChecker((filePath) => {
   return filePath.indexOf(app.getAppPath()) === -1;
 });
+
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) { // eslint-disable-line global-require
   app.quit();
 }
+*/
 
 // Check on macOS if somebody launched the app by dropping a file on the icon
 // in the dock. NEEDS TESTING!
@@ -39,15 +42,20 @@ ipcMain.on("get-file-data", function(event) {
   event.returnValue = data;
 });
 
-const createWindow = () => {
+function createWindow () {
   // Create the browser window.
   let newWindow = new BrowserWindow({
     width: 1600,
     height: 900,
-    icon: path.join(__dirname, "images/icons/app_icon_64.png")
+    icon: path.join(__dirname, "images/icons/app_icon_64.png"),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: true
+    }
   });
 
   newWindow.setMenu(null);
+  newWindow.removeMenu();
 
   // and load the index.html of the app.
   let url = path.resolve(__dirname, "editor/editor.html");
@@ -57,7 +65,7 @@ const createWindow = () => {
   // newWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
-  newWindow.on("closed", () => {
+  newWindow.on("closed", function () {
     // Dereference the window object, usually you would store windows
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
@@ -80,16 +88,19 @@ const createWindow = () => {
   return newWindow;
 };
 
-const createPlayWindow = (playtestPath) => {
+function createPlayWindow(playtestPath) {
   let newWindow;
 
   newWindow = new BrowserWindow({
     width: 1600,
     height: 1000,
-    icon: path.join(__dirname, "images/icons/app_icon_64.png")
+    icon: path.join(__dirname, "images/icons/app_icon_64.png"),
+    webPreferences: {
+      nodeIntegration: true
+    }
   });
 
-  // newWindow.webContents.openDevTools();
+  newWindow.webContents.openDevTools();
 
   newWindow.setMenu(null);
 
@@ -110,7 +121,7 @@ const createPlayWindow = (playtestPath) => {
   return newWindow;
 };
 
-const createLicenseWindow = (whichLicense) => {
+function createLicenseWindow(whichLicense) {
   let newWindow;
 
   newWindow = new BrowserWindow({

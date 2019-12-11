@@ -1,5 +1,3 @@
-const fs = require("fs");
-
 const {app, dialog} = require("electron").remote;
 const {ipcRenderer, shell} = require("electron");
 
@@ -354,7 +352,7 @@ const showFileList = function () {
                     refresh = true;
                     showFileList();
                 } else if (response === 1) {
-                    // No, save this choice
+                    // No, remember this choice
                     createFiles = false;
                 }
             });
@@ -573,13 +571,26 @@ const openFileAttempt = (filePath) => {
 };
 
 const openFileDialog = () => {
+    /*
+    Legacy code: remove
     dialog.showOpenDialog((selectedFiles) => {
         if (selectedFiles === undefined) {
             console.log("No files were selected");
         } else {
+            console.log("Attemping to open file " + selectedFiles[0]);
             openFileAttempt(selectedFiles[0]);
         }
     });
+    */
+   dialog.showOpenDialog({
+    properties: ['openFile']
+  }).then(result => {
+    if (!result.canceled) {
+        openFileAttempt(result.filePaths[0]);
+    }
+  }).catch(err => {
+    console.log(err);
+  })
 };
 
 const continueAction = (action) => {
