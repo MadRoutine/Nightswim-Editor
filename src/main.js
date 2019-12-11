@@ -127,7 +127,10 @@ function createLicenseWindow(whichLicense) {
   newWindow = new BrowserWindow({
     width: 800,
     height: 1000,
-    icon: path.join(__dirname, "images/icons/app_icon_64.png")
+    icon: path.join(__dirname, "images/icons/app_icon_64.png"),
+    webPreferences: {
+      nodeIntegration: true
+    }
   });
 
   // newWindow.webContents.openDevTools();
