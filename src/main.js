@@ -42,6 +42,9 @@ ipcMain.on("get-file-data", function(event) {
   event.returnValue = data;
 });
 
+// Prevent menu from showing
+Menu.setApplicationMenu(null);
+
 function createWindow () {
   // Create the browser window.
   let newWindow = new BrowserWindow({
@@ -53,9 +56,6 @@ function createWindow () {
       nodeIntegration: true
     }
   });
-
-  newWindow.setMenu(null);
-  newWindow.removeMenu();
 
   // and load the index.html of the app.
   let url = path.resolve(__dirname, "editor/editor.html");
