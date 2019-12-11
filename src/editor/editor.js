@@ -571,17 +571,6 @@ const openFileAttempt = (filePath) => {
 };
 
 const openFileDialog = () => {
-    /*
-    Legacy code: remove
-    dialog.showOpenDialog((selectedFiles) => {
-        if (selectedFiles === undefined) {
-            console.log("No files were selected");
-        } else {
-            console.log("Attemping to open file " + selectedFiles[0]);
-            openFileAttempt(selectedFiles[0]);
-        }
-    });
-    */
    dialog.showOpenDialog({
     properties: ['openFile']
   }).then(result => {

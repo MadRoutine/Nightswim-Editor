@@ -4,7 +4,9 @@
   "description": "Editor for Nightswim",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "repository": "https://github.com/MadRoutine/Nightswim-Editor",
   "keywords": [
@@ -16,6 +18,8 @@
   "author": "Mad Routine",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^7.1.4"
-  }
+    "electron": "^7.1.4",
+    "electron-builder": "^21.2.0"
+  },
+  "postinstall": "electron-builder install-app-deps"
 }
