@@ -486,6 +486,11 @@ const refreshQuickNav = () => {
     }
 
     if (makeNav) {
+        // Show quick navigation column
+        $("#monaco_editor").css("flex-basis", "50%");
+        $("#monaco_editor").css("max-width", "50%");
+        $("#quicknav").css("display", "block");
+
         // Get an array with all id's that are found
         matchInfo = editor.getModel().findMatches(whichID, true, false, true);
 
@@ -533,6 +538,11 @@ const refreshQuickNav = () => {
                 i += 1;
             }
         }
+    } else {
+        // Hide quick navigation column
+        $("#quicknav").css("display", "none");
+        $("#monaco_editor").css("flex-basis", "60%");
+        $("#monaco_editor").css("max-width", "60%");
     }
 };
 
