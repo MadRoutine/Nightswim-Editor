@@ -42,7 +42,7 @@ function createWindow () {
   newWindow.loadFile(path.join(__dirname, "editor/editor.html"));
 
   // Open the DevTools.
-  newWindow.webContents.openDevTools();
+  // newWindow.webContents.openDevTools();
 
   // Emitted when the window is actually being closed.
   newWindow.on("closed", function () {
@@ -83,7 +83,7 @@ function createPlayWindow (playtestPath) {
 
   newWindow.maximize();
 
-  newWindow.loadFile("playtest/playtest.html");
+  newWindow.loadFile(path.join(__dirname, "playtest/playtest.html"));
 
   newWindow.on("closed", function () {
     let thisWindowIndex = allWindows.indexOf(newWindow);
@@ -110,7 +110,7 @@ function createLicenseWindow (whichLicense) {
     }
   });
 
-  newWindow.loadFile("license/license.html");
+  newWindow.loadFile(path.join(__dirname, "license/license.html"));
 
   newWindow.on("closed", function () {
     let thisWindowIndex = allWindows.indexOf(newWindow);
