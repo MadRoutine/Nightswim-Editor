@@ -5,22 +5,85 @@
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' filesystem 'unsafe-inline'; img-src 'self' data:;">
   <meta name="viewport" content="initial-scale=1">
+  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+  <script src="../../lib/jquery-3.4.1.min.js"></script>
+  <script>if (window.module) module = window.module;</script>
   <script>
     const {ipcRenderer, remote} = require("electron");
+
     ipcRenderer.on("playtest-loading-done", (event, path, windowId) => {
         console.log("new window: id is " + windowId);
+
         path = "file://" + path;
+
         console.log("Playtest path is " + path);
 
+        $("#btn_reload").click(function () {
+          ipcRenderer.send("reload-playtest", windowId);
+        });
+
+        $("#btn_devtools").click(function () {
+          ipcRenderer.send("toggle-dev-tools", windowId);
+        });
+
+        $("#btn_close").click(function () {
+          ipcRenderer.send("close-window-request", windowId);
+        });
+
         const playFrame = document.querySelector("#playFrameId");
+
         playFrame.src = path;
 
     });
   </script>
+  <style>
+    #dev_buttons {
+      z-index: 2;
+      position: absolute;
+      top: 0;
+      left: 0;
+      padding: 0.6em;
+    }
+
+    #dev_buttons button {
+      font-size: 1em;
+      height: 30px;
+      margin: 0 4px 1px 0;
+      padding: 0.4em;
+      overflow: hidden;
+      text-align: center;
+      border: 0;
+      color: #333;
+      border-bottom: 1px solid white;
+      background-color: rgb(245,245,245);
+      border-radius: 5%;
+    }
+
+    #dev_buttons button:hover {
+      color: white;
+      background-color: #333;
+    }
+
+    #playFrameId {
+      z-index: 1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+  </style>
 </head>
 
 <body style="margin: 0; padding: 0">
-  <iframe id="playFrameId" style="width: 99vw; height: 99vh; margin: 0;
-  padding: 0; border: 0;"></iframe>
+  <div id="dev_buttons">
+    <button id="btn_reload">Reload</button>
+    <button id="btn_devtools">Dev Tools</button>
+    <button id="btn_close">Close</button>
+  </div>
+  <iframe id="playFrameId"></iframe>
 </body>
 </html>

@@ -100,9 +100,11 @@ function createPlayWindow(playtestPath) {
     }
   });
 
-  newWindow.webContents.openDevTools();
+  // newWindow.webContents.openDevTools();
 
-  newWindow.setMenu(null);
+  // newWindow.setMenu(null);
+
+  newWindow.maximize();
 
   let url = path.resolve(__dirname, "playtest/playtest.html");
   newWindow.loadFile(url);
@@ -214,6 +216,11 @@ ipcMain.on("update-title", (event, windowId, file) => {
 ipcMain.on("reload-playtest", (event, windowId) => {
   let thisWindow = BrowserWindow.fromId(windowId);
   thisWindow.reload();
+});
+
+ipcMain.on("toggle-dev-tools", (event, windowId) => {
+  let thisWindow = BrowserWindow.fromId(windowId);
+  thisWindow.toggleDevTools();
 });
 
 // ESLint will warn about any use of eval(), even this one
