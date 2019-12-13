@@ -34,7 +34,7 @@ let cat = {
     prev: true
 };
 
-ipcRenderer.on("loading-done", (event, windowId) => {
+ipcRenderer.on("loading-done", function (event, windowId) {
 
     thisWindowId = windowId;
     console.log("New window: id is " + windowId);
