@@ -131,6 +131,10 @@ ipcRenderer.on("loading-done", function (event, windowId) {
         ipcRenderer.send("create-new-license-window", "nightswimedit");
     });
 
+    $("#btn_lic_el").click(() => {
+        ipcRenderer.send("create-new-license-window", "electron");
+    });
+
     $("#btn_lic_mon").click(() => {
         ipcRenderer.send("create-new-license-window", "monaco");
     });
@@ -156,7 +160,7 @@ ipcRenderer.on("loading-done", function (event, windowId) {
     }
 
     // Drag and drop
-    document.ondragover = document.ondrop = (ev) => {
+    document.ondragover = document.ondrop = function (ev) {
         ev.preventDefault();
     };
 
@@ -169,7 +173,7 @@ ipcRenderer.on("loading-done", function (event, windowId) {
 
 });
 
-ipcRenderer.on("request-save-dialog-on-close", () => {
+ipcRenderer.on("request-save-dialog-on-close", function () {
     requestSaveDialog("close");
 });
 
