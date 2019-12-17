@@ -1,9 +1,6 @@
-.vscode
 node_modules
 out
 dist
 .compilerc
 .eslintrc
 .jshintrc
-package.json
-package-lock.json

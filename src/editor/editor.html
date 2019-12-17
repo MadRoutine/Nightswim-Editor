@@ -9,7 +9,7 @@
   <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
   <script src="../templates.js"></script>
   <script src="../../lib/keypress-2.1.5.min.js"></script>
-  <script src="../../lib/jquery-3.3.1.min.js"></script>
+  <script src="../../lib/jquery-3.4.1.min.js"></script>
   <script>if (window.module) module = window.module;</script>
 </head>
 
@@ -32,11 +32,12 @@
 
   <div id="about_window">
     <h2>Nightswim Editor</h2>
-    <p>version 1.0.0</p>
+    <p>version 1.1.0-beta</p>
     <p>Nightswim Editor is released under
     the open source <a href="#" id="btn_lic_ns">MIT License</a>.</p>
     <p>Nightswim Editor is an Electron app. It includes the following (unmodified) open source components (click to view license):</p>
     <ul>
+      <li><a href="#" id="btn_lic_el">Electron: MIT License</a></li>
       <li><a href="#" id="btn_lic_mon">Monaco Editor: MIT License</a></li>
       <li><a href="#" id="btn_lic_jq">jQuery: MIT License</a></li>
       <li><a href="#" id="btn_lic_kp">Keypress: Apache License 2.0</a></li>
@@ -62,6 +63,11 @@
       <div id="prev_files"></div>
     </div>
 
+    <div id="quicknav">
+      <h3>Quick Navigation</h3>
+      <div id="quicknav_list"></div>
+    </div>
+
     <div id="monaco_editor"></div>
 
     <div id="list_menu">
@@ -78,17 +84,21 @@
   </div>
 
   <script>
-  // Monaco uses a custom amd loader that overrides node's require.
-  // Keep a reference to node's require so we can restore it after executing the amd loader file.
-      var nodeRequire = global.require;
+    const fs = require("fs");
+    var path = require("path");
+
+    // Monaco uses a custom amd loader that overrides node's require.
+    // Keep a reference to node's require so we can restore it after executing the amd loader file.
+    var nodeRequire = require;
   </script>
 
   <script src="../../lib/monaco-editor/min/vs/loader.js"></script>
 
   <script>
     // Save Monaco's amd require and restore Node's require
-    var amdRequire = global.require;
-    global.require = nodeRequire;
+    var amdRequire = require;
+    require = nodeRequire;
+    require.nodeRequire = require;
   </script>
 
   <script>
@@ -96,7 +106,7 @@
     var monacoReady = false;
 
     // require node modules before loader.js comes in
-    var path = require('path');
+    // var path = require('path');
 
     function uriFromPath(_path) {
       var pathName = path.resolve(_path).replace(/\\/g, '/');

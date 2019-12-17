@@ -245,7 +245,7 @@ let templates = {
                     },
                     {
                         id: "cond_state",
-                        name: "playerState",
+                        name: "state",
                         content: `    {
         "type": "state",
         "obj": "objID, npcID, or player",

@@ -1,5 +1,3 @@
-const fs = require("fs");
-
 const {app, dialog} = require("electron").remote;
 const {ipcRenderer, shell} = require("electron");
 
@@ -11,13 +9,15 @@ const {ipcRenderer, shell} = require("electron");
 */
 let currentFile = {
     path: "New File",
-    type: "regular"
+    type: "regular",
+    storyFile: "no"
 };
 let currentLang = "json";
 let currentFileChanged = false;
 let prevFile = {
     path: "none",
-    type: "none"
+    type: "none",
+    storyFile: "no"
 };
 let openFileRequest = "";
 let openingArchive = false;
@@ -34,7 +34,7 @@ let cat = {
     prev: true
 };
 
-ipcRenderer.on("loading-done", (event, windowId) => {
+ipcRenderer.on("loading-done", function (event, windowId) {
 
     thisWindowId = windowId;
     console.log("New window: id is " + windowId);
@@ -131,6 +131,10 @@ ipcRenderer.on("loading-done", (event, windowId) => {
         ipcRenderer.send("create-new-license-window", "nightswimedit");
     });
 
+    $("#btn_lic_el").click(() => {
+        ipcRenderer.send("create-new-license-window", "electron");
+    });
+
     $("#btn_lic_mon").click(() => {
         ipcRenderer.send("create-new-license-window", "monaco");
     });
@@ -156,7 +160,7 @@ ipcRenderer.on("loading-done", (event, windowId) => {
     }
 
     // Drag and drop
-    document.ondragover = document.ondrop = (ev) => {
+    document.ondragover = document.ondrop = function (ev) {
         ev.preventDefault();
     };
 
@@ -169,11 +173,12 @@ ipcRenderer.on("loading-done", (event, windowId) => {
 
 });
 
-ipcRenderer.on("request-save-dialog-on-close", () => {
+ipcRenderer.on("request-save-dialog-on-close", function () {
     requestSaveDialog("close");
 });
 
 $(document).on("click", "a[href^=\"http\"]", function (event) {
+    // Open weblinks in external browser
     event.preventDefault();
     shell.openExternal(this.href);
 });
@@ -354,7 +359,7 @@ const showFileList = function () {
                     refresh = true;
                     showFileList();
                 } else if (response === 1) {
-                    // No, save this choice
+                    // No, remember this choice
                     createFiles = false;
                 }
             });
@@ -456,7 +461,87 @@ const toggleWordWrap = () => {
     editor.focus();
 };
 
+const refreshQuickNav = () => {
+    let matchInfo;
+    let buttonName;
+    let makeNav = false;
+    let whichID;
+
+    console.log("Lets update!");
+    // Empty quickNav
+    $("#quicknav_list").html("");
+
+    // Let's search for entries and get line numbers for each
+    switch (currentFile.storyFile) {
+        case "locations":
+            makeNav = true;
+            whichID = "locID";
+            break;
+
+        case "npc_list":
+            makeNav = true;
+            whichID = "name";
+            break;
+
+        case "obj_list":
+            makeNav = true;
+            whichID = "name";
+            break;
+    }
+
+    if (makeNav) {
+        // Get an array with all id's that are found
+        matchInfo = editor.getModel().findMatches(whichID, true, false, true);
+
+        if (matchInfo.length > 0) {
+            let i = 0;
+
+            while (i < matchInfo.length) {
+                // For every found "locID": get name of location
+                let range = matchInfo[i].range;
+                let thisMatch;
+                let thisMatchPos = {
+                    column: 1,
+                    lineNumber: 1
+                };
+
+                // Move startColumn to where the actual value starts
+                range.startColumn = range.endColumn + 4;
+
+                // Find out where the value ends (right before ",)
+                // thisMatchPos has to be formatted as an IPosition (so: only column and lineNumber) instead of a range
+                thisMatchPos.column = range.startColumn;
+                thisMatchPos.lineNumber = range.startLineNumber;
+
+                // Look where the actual value ends:
+                thisMatch = editor.getModel().findNextMatch("\",", thisMatchPos, false);
+
+                // range.endColumn hasn't been moved yet and is currently BEFORE the start position, so let's fix that
+                range.endColumn = thisMatch.range.startColumn;
+
+                // Retrieve value to use as name for button
+                buttonName = editor.getModel().getValueInRange(range);
+
+                // Move one line back to reveal the opening curl
+                range.startLineNumber -= 1;
+
+                // Create a button that links to the position
+                $("#quicknav_list").append("<button id=\"quicknav_" + i + "\">" + buttonName + "</button>");
+
+                // Make click event
+                $("#quicknav_" + i).click(function () {
+                    // Navigate to that position
+                    editor.revealRangeAtTop(range, 0);
+                });
+
+                i += 1;
+            }
+        }
+    }
+};
+
 const changeEditorContent = (data, filePath) => {
+    let fileName;
     fileChanged(false);
     // Save view state of file that is about to be replaced
     session.set(currentFile.path, editor.saveViewState());
@@ -465,6 +550,7 @@ const changeEditorContent = (data, filePath) => {
     if (currentFile.path !== "New File" && currentFile.type !== "archive") {
         prevFile.path = currentFile.path;
         prevFile.type = currentFile.type;
+        prevFile.storyFile = currentFile.storyFile;
         console.log("prevFile updated");
     }
 
@@ -479,6 +565,22 @@ const changeEditorContent = (data, filePath) => {
 
     // Update currentFile.path
     currentFile.path = filePath;
+
+    // Set currentFile.storyFile
+    fileName = path.basename(currentFile.path);
+    switch (fileName) {
+        case "locations.json":
+            currentFile.storyFile = "locations";
+            break;
+        case "npc_list.json":
+            currentFile.storyFile = "npc_list";
+            break;
+        case "obj_list.json":
+            currentFile.storyFile = "obj_list";
+            break;
+        default:
+            currentFile.storyFile = "no";
+    }
 
     openFileRequest = "";
     // Set correct language
@@ -495,10 +597,13 @@ const changeEditorContent = (data, filePath) => {
     }
     // Update window title
     showFilename();
+
     // Replace everything in Monaco with new content
     if (monacoReady) {
         editor.setModel(monaco.editor.createModel(data, currentLang));
         editor.focus();
+        // refresh QuickNavigation
+        refreshQuickNav();
         // Check if file is in session, if yes, restore its view state
         if (session.has(filePath)) {
             let state = session.get(filePath);
@@ -511,6 +616,8 @@ const changeEditorContent = (data, filePath) => {
                 clearInterval(waitForMonaco);
                 editor.setModel(monaco.editor.createModel(data, currentLang));
                 editor.focus();
+                // refresh QuickNavigation
+                refreshQuickNav();
                 // Check if file is in session, if yes, restore its view state
                 if (session.has(filePath)) {
                     let state = session.get(filePath);
@@ -531,7 +638,7 @@ const changeEditorContent = (data, filePath) => {
 const newFile = () => {
     if (session.has("New File")) {
         // There is info saved from a previous new file,
-        // so lets delete it!
+        // so let's delete it!
         session.delete("New File");
     }
     changeEditorContent("", "New File");
@@ -573,13 +680,15 @@ const openFileAttempt = (filePath) => {
 };
 
 const openFileDialog = () => {
-    dialog.showOpenDialog((selectedFiles) => {
-        if (selectedFiles === undefined) {
-            console.log("No files were selected");
-        } else {
-            openFileAttempt(selectedFiles[0]);
-        }
-    });
+   dialog.showOpenDialog({
+    properties: ['openFile']
+  }).then(result => {
+    if (!result.canceled) {
+        openFileAttempt(result.filePaths[0]);
+    }
+  }).catch(err => {
+    console.log(err);
+  })
 };
 
 const continueAction = (action) => {
@@ -659,29 +768,34 @@ const saveFile = (followUpAction) => {
     // Is this a new file?
     if (currentFile.path === "New File") {
         // Open Save Dialog
-        dialog.showSaveDialog((filename) => {
-            if (filename === undefined) {
-                console.log("No filename specified...");
-            } else {
-                // Check if it ends with .json
-                let ext = extPattern.exec(filename)[1];
-                if (ext !== "json") {
-                    filename = filename + ".json";
-                }
-                // Write new file
-                fs.writeFile(filename, content, (err) => {
-                    if(err) {
-                        // Error
-                        dialog.showErrorBox("File Save Error", err.message);
-                    } else {
-                        // Success
-                        currentFile.path = filename;
-                        showFeedback("File saved");
-                        showFileList();
-                        fileChanged(false);
-                        continueAction(followUpAction);
+        dialog.showSaveDialog().then(result => {
+            if (!result.canceled) {
+                let filename = result.filePath;
+                if (filename === undefined) {
+                    console.log("No filename specified...");
+                } else {
+                    // Check if it ends with .json
+                    let ext = extPattern.exec(filename)[1];
+                    if (ext !== "json") {
+                        filename = filename + ".json";
                     }
-                });
+                    // Write new file
+                    fs.writeFile(filename, content, (err) => {
+                        if(err) {
+                            // Error
+                            dialog.showErrorBox("File Save Error", err.message);
+                        } else {
+                            // Success
+                            currentFile.path = filename;
+                            showFeedback("File saved");
+                            showFileList();
+                            // refresh QuickNavigation
+                            refreshQuickNav();
+                            fileChanged(false);
+                            continueAction(followUpAction);
+                        }
+                    });
+                }
             }
         });
     } else {
@@ -692,6 +806,8 @@ const saveFile = (followUpAction) => {
                 return;
             } else {
                 showFeedback("File saved");
+                // refresh QuickNavigation
+                refreshQuickNav();
                 fileChanged(false);
                 continueAction(followUpAction);
             }
@@ -707,14 +823,14 @@ const requestSaveDialog = (action) => {
             type: "question",
             buttons: ["Save","Don't Save", "Cancel"],
             message: "Your file has unsaved changes. Would you like to save it?"
-        }, (response) => {
-            if (response === 0) {
+        }).then(result => {
+            if (result.response === 0) {
                 // User wants to save
                 saveFile(action);
-            } else if (response === 1) {
+            } else if (result.response === 1) {
                 // User doesn't want to save
                 continueAction(action);
-            } else if (response === 2) {
+            } else if (result.response === 2) {
                 // User cancelled
                 if (openingArchive) {
                     openingArchive = false;

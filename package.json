@@ -1,67 +1,25 @@
 {
   "name": "nightswim-editor",
-  "productName": "Nightswim Editor",
-  "version": "1.0.0",
-  "description": "Editor for the Nightswim storytelling engine",
-  "main": "src/index.js",
+  "version": "1.1.0",
+  "description": "Editor for Nightswim",
+  "main": "src/main.js",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish",
-    "lint": "eslint src --color"
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
-  "keywords": [],
-  "author": "Nightswim",
+  "repository": "https://github.com/MadRoutine/Nightswim-Editor",
+  "keywords": [
+    "Nightswim",
+    "editor",
+    "interactive",
+    "fiction"
+  ],
+  "author": "Mad Routine",
   "license": "MIT",
-  "config": {
-    "forge": {
-      "make_targets": {
-        "win32": [
-          "squirrel"
-        ],
-        "darwin": [
-          "zip"
-        ],
-        "linux": [
-          "deb",
-          "rpm"
-        ]
-      },
-      "electronPackagerConfig": {
-        "packageManager": "npm",
-        "icon": "src/images/icons/icon_multires",
-        "asar": true
-      },
-      "electronWinstallerConfig": {
-        "name": "NightswimEditor"
-      },
-      "electronInstallerDebian": {},
-      "electronInstallerRedhat": {},
-      "github_repository": {
-        "owner": "",
-        "name": ""
-      },
-      "windowsStoreConfig": {
-        "packageName": "",
-        "name": "nightswimeditor"
-      }
-    }
-  },
-  "dependencies": {
-    "electron-compile": "^6.4.2",
-    "electron-squirrel-startup": "^1.0.0"
-  },
   "devDependencies": {
-    "babel-plugin-transform-async-to-generator": "^6.24.1",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-react": "^6.24.1",
-    "electron-forge": "^5.2.2",
-    "electron-prebuilt-compile": "2.0.2",
-    "eslint": "^4.19.1",
-    "eslint-config-airbnb": "^15.1.0",
-    "eslint-plugin-import": "^2.12.0",
-    "eslint-plugin-jsx-a11y": "^5.1.1",
-    "eslint-plugin-react": "^7.9.1"
-  }
+    "electron": "^7.1.4",
+    "electron-builder": "^21.2.0"
+  },
+  "postinstall": "electron-builder install-app-deps"
 }
