@@ -1,6 +1,6 @@
 {
   "name": "nightswim-editor",
-  "version": "1.1.0-beta",
+  "version": "1.1.0",
   "description": "Editor for Nightswim",
   "main": "src/main.js",
   "scripts": {
