@@ -251,7 +251,8 @@ const showFileList = function () {
         init: {},
         locations: {},
         npc_list: {},
-        obj_list: {}
+        obj_list: {},
+        render: {}
     };
 
     if (
@@ -281,7 +282,8 @@ const showFileList = function () {
         fileName === "init.json" ||
         fileName === "locations.json" ||
         fileName === "npc_list.json" ||
-        fileName === "obj_list.json"
+        fileName === "obj_list.json" ||
+        fileName === "render.js"
     ) {
         // current fileName indicates that this is the story folder
         storyDir = dir;
@@ -308,6 +310,7 @@ const showFileList = function () {
         mainFiles.locations.path = path.join(storyDir, "locations.json");
         mainFiles.npc_list.path = path.join(storyDir, "npc_list.json");
         mainFiles.obj_list.path = path.join(storyDir, "obj_list.json");
+        mainFiles.render.path = path.join(storyDir, "render.js");
 
         if (fs.existsSync(mainFiles.init.path)) {
             addFileButton("#main_files", mainFiles.init.path, "init_file");
@@ -332,6 +335,12 @@ const showFileList = function () {
         } else {
             missingFiles.push(mainFiles.obj_list.path);
             missingContent.push(templates.files.obj_list);
+        }
+        if (fs.existsSync(mainFiles.render.path)) {
+            addFileButton("#main_files", mainFiles.render.path, "render_file");
+        } else {
+            missingFiles.push(mainFiles.render.path);
+            missingContent.push(templates.files.render);
         }
 
         if (missingFiles.length > 0 && createFiles) {
@@ -365,7 +374,7 @@ const showFileList = function () {
             });
         }
 
-        /* This function was called again when files were automatically created
+        /* This function was called again when files were automatically created.
         Only continue here if that's not the case */
         if (!refresh) {
             // Check for scene files
@@ -383,13 +392,13 @@ const showFileList = function () {
                     });
                 });
             }
-            // Check for .html, .css and .txt files
+            // Check for .html, .css, .js and .txt files
             let otherDir = path.join(storyDir, "..");
             if (fs.existsSync(otherDir)) {
                 fs.readdir(otherDir, (err, otherFiles) => {
                     otherFiles.forEach(otherFileName => {
                         let ext = extPattern.exec(otherFileName)[1];
-                        if (ext === "html" || ext === "css" || ext === "txt") {
+                        if (ext === "html" || ext === "css" || ext === "js" || ext === "txt") {
                             let thisBtnId = "other_file_" + btnId;
                             btnId += 1;
                             let filePath = path.join(otherDir, otherFileName);
@@ -467,7 +476,6 @@ const refreshQuickNav = () => {
     let makeNav = false;
     let whichID;
 
-    console.log("Lets update!");
     // Empty quickNav
     $("#quicknav_list").html("");
 
@@ -487,6 +495,10 @@ const refreshQuickNav = () => {
             makeNav = true;
             whichID = "name";
             break;
+
+        case "render":
+            makeNav = true;
+            whichID = "enter: function"
     }
 
     if (makeNav) {
@@ -505,25 +517,52 @@ const refreshQuickNav = () => {
                     lineNumber: 1
                 };
 
-                // Move startColumn to where the actual value starts
-                range.startColumn = range.endColumn + 4;
+                if (whichID === "enter: function") {
+                    // Get correct line numbers for render.js
+                    // The name for each object should start one line above
+                    // where 'enter: function' is.
+                    // Move startColumn en LineNumber
+                    range.startColumn = 1;
+                    range.startLineNumber -= 1;
 
-                // Find out where the value ends (right before ",)
-                // thisMatchPos has to be formatted as an IPosition (so: only column and lineNumber) instead of a range
-                thisMatchPos.column = range.startColumn;
-                thisMatchPos.lineNumber = range.startLineNumber;
+                    // thisMatchPos has to be formatted as an IPosition (so: only column and lineNumber) instead of a range
+                    thisMatchPos.column = range.startColumn;
+                    thisMatchPos.lineNumber = range.startLineNumber;
 
-                // Look where the actual value ends:
-                thisMatch = editor.getModel().findNextMatch("\",", thisMatchPos, false);
+                    // Find out where the name of the object ends.
+                    // This should be after ': {'
+                    thisMatch = editor.getModel().findNextMatch(": {", thisMatchPos, false);
 
-                // range.endColumn hasn't been moved yet and is currently BEFORE the start position, so let's fix that
-                range.endColumn = thisMatch.range.startColumn;
+                    // Set range.endColumn to where thisMatch was found
+                    range.endColumn = thisMatch.range.startColumn;
+                    range.endLineNumber = range.startLineNumber;
 
-                // Retrieve value to use as name for button
-                buttonName = editor.getModel().getValueInRange(range);
+                    // Retrieve value to use as name for button
+                    buttonName = editor.getModel().getValueInRange(range);
 
-                // Move one line back to reveal the opening curl
-                range.startLineNumber -= 1;
+                    // Let's remove the whitespace in front of the name
+                    buttonName = buttonName.trim();
+
+                } else {
+                    // Move startColumn to where the actual value starts
+                    range.startColumn = range.endColumn + 4;
+
+                    // thisMatchPos has to be formatted as an IPosition (so: only column and lineNumber) instead of a range
+                    thisMatchPos.column = range.startColumn;
+                    thisMatchPos.lineNumber = range.startLineNumber;
+
+                    // Look where the actual value ends (right before '",')
+                    thisMatch = editor.getModel().findNextMatch("\",", thisMatchPos, false);
+
+                    /// Set range.endColumn to where thisMatch was found
+                    range.endColumn = thisMatch.range.startColumn;
+
+                    // Retrieve value to use as name for button
+                    buttonName = editor.getModel().getValueInRange(range);
+
+                    // Move one line back to reveal the opening curl
+                    range.startLineNumber -= 1;
+                }
 
                 // Create a button that links to the position
                 $("#quicknav_list").append("<button id=\"quicknav_" + i + "\">" + buttonName + "</button>");
@@ -540,8 +579,33 @@ const refreshQuickNav = () => {
     }
 };
 
-const changeEditorContent = (data, filePath) => {
+const updateCurrentFile = function (filePath) {
     let fileName;
+
+    // Update currentFile.path
+    currentFile.path = filePath;
+
+    // Set currentFile.storyFile
+    fileName = path.basename(currentFile.path);
+    switch (fileName) {
+        case "locations.json":
+            currentFile.storyFile = "locations";
+            break;
+        case "npc_list.json":
+            currentFile.storyFile = "npc_list";
+            break;
+        case "obj_list.json":
+            currentFile.storyFile = "obj_list";
+            break;
+        case "render.js":
+            currentFile.storyFile = "render";
+            break;
+        default:
+            currentFile.storyFile = "no";
+    }
+};
+
+const changeEditorContent = function (data, filePath) {
     fileChanged(false);
     // Save view state of file that is about to be replaced
     session.set(currentFile.path, editor.saveViewState());
@@ -563,24 +627,7 @@ const changeEditorContent = (data, filePath) => {
         currentFile.type = "regular";
     }
 
-    // Update currentFile.path
-    currentFile.path = filePath;
-
-    // Set currentFile.storyFile
-    fileName = path.basename(currentFile.path);
-    switch (fileName) {
-        case "locations.json":
-            currentFile.storyFile = "locations";
-            break;
-        case "npc_list.json":
-            currentFile.storyFile = "npc_list";
-            break;
-        case "obj_list.json":
-            currentFile.storyFile = "obj_list";
-            break;
-        default:
-            currentFile.storyFile = "no";
-    }
+    updateCurrentFile(filePath);
 
     openFileRequest = "";
     // Set correct language
@@ -594,6 +641,8 @@ const changeEditorContent = (data, filePath) => {
         currentLang = "css";
     } else if (ext !== undefined && ext === "txt") {
         currentLang = "plaintext";
+    } else if (ext !== undefined && ext === "js") {
+        currentLang = "javascript";
     }
     // Update window title
     showFilename();
@@ -668,7 +717,7 @@ const openFileAttempt = (filePath) => {
     if (
         // Need better validation of actual MIME-types, not just extension
         ext !== undefined && (ext === "json" || ext === "html" ||
-        ext === "txt" || ext === "css")
+        ext === "txt" || ext === "css" || ext ==="js")
     ) {
         if (filePath !== currentFile.path) {
             requestSaveDialog("open");
@@ -770,23 +819,27 @@ const saveFile = (followUpAction) => {
         // Open Save Dialog
         dialog.showSaveDialog().then(result => {
             if (!result.canceled) {
-                let filename = result.filePath;
-                if (filename === undefined) {
+                let filePath = result.filePath;
+                if (filePath === undefined) {
                     console.log("No filename specified...");
                 } else {
                     // Check if it ends with .json
+                    // Or maybe not?
+                    /*
                     let ext = extPattern.exec(filename)[1];
                     if (ext !== "json") {
                         filename = filename + ".json";
                     }
+                    */
+
                     // Write new file
-                    fs.writeFile(filename, content, (err) => {
+                    fs.writeFile(filePath, content, (err) => {
                         if(err) {
                             // Error
                             dialog.showErrorBox("File Save Error", err.message);
                         } else {
                             // Success
-                            currentFile.path = filename;
+                            updateCurrentFile(filePath);
                             showFeedback("File saved");
                             showFileList();
                             // refresh QuickNavigation

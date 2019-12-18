@@ -1,4 +1,4 @@
-// 190111r01
+// 191218r01
 let templates = {
                 main: [
                     {
@@ -24,6 +24,17 @@ let templates = {
             "containerClass": "",
             "buttonClass": "",
             "bgClass": ""
+        },
+        "pixi": {
+            "id": "",
+            "solo": false,
+            "scenes": [
+                {
+                "tag": "",
+                "text": "",
+                "conditions": []
+                }
+            ]
         }
     }`
                     },
@@ -447,6 +458,15 @@ let templates = {
     }`
                     },
                     {
+                        id: "change_render",
+                        name: "render",
+                        content: `    {
+        "type": "render",
+        "pixi_id": "id",
+        "tag": "tag"
+    }`
+                    },
+                    {
                         id: "change_removesection",
                         name: "removeSection",
                         content: `    {
@@ -474,6 +494,8 @@ let templates = {
                 ],
                 files: {
                     init: `{
+    "version": "1.0",
+    "compatibleVersions": [],
     "audioFadeTime": 1000,
     "fadeTime": 250,
     "feedbackTime": 4000,
@@ -484,6 +506,10 @@ let templates = {
     "bgSize": "cover",
     "startLocation": "start",
     "storySettings": {
+    },
+    "pixiSettings": {
+        "enabled": true,
+        "globalSolo": false
     },
     "preloadAudio": [
     ]
@@ -509,6 +535,17 @@ let templates = {
             "containerClass": "",
             "buttonClass": "",
             "bgClass": ""
+        },
+        "pixi": {
+            "id": "apt",
+            "solo": false,
+            "scenes": [
+                {
+                "tag": "",
+                "text": "",
+                "conditions": []
+                }
+            ]
         }
     }
 ]`,
@@ -517,6 +554,10 @@ let templates = {
 ]   `,
                     obj_list: `[
 
-]`
+]`,
+render: `
+let pixies = {};
+let renderScriptExecuted = true;
+console.log("Render script loaded and executed");`
                 }
 };
