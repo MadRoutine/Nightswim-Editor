@@ -282,8 +282,7 @@ const showFileList = function () {
         fileName === "init.json" ||
         fileName === "locations.json" ||
         fileName === "npc_list.json" ||
-        fileName === "obj_list.json" ||
-        fileName === "render.js"
+        fileName === "obj_list.json"
     ) {
         // current fileName indicates that this is the story folder
         storyDir = dir;
@@ -310,7 +309,6 @@ const showFileList = function () {
         mainFiles.locations.path = path.join(storyDir, "locations.json");
         mainFiles.npc_list.path = path.join(storyDir, "npc_list.json");
         mainFiles.obj_list.path = path.join(storyDir, "obj_list.json");
-        mainFiles.render.path = path.join(storyDir, "render.js");
 
         if (fs.existsSync(mainFiles.init.path)) {
             addFileButton("#main_files", mainFiles.init.path, "init_file");
@@ -335,12 +333,6 @@ const showFileList = function () {
         } else {
             missingFiles.push(mainFiles.obj_list.path);
             missingContent.push(templates.files.obj_list);
-        }
-        if (fs.existsSync(mainFiles.render.path)) {
-            addFileButton("#main_files", mainFiles.render.path, "render_file");
-        } else {
-            missingFiles.push(mainFiles.render.path);
-            missingContent.push(templates.files.render);
         }
 
         if (missingFiles.length > 0 && createFiles) {
